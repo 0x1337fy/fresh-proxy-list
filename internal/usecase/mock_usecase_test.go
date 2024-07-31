@@ -24,7 +24,7 @@ type mockFetcherUtil struct {
 	fetchDataByte  []byte
 	fetcherError   error
 	NewRequestFunc func(method, url string, body io.Reader) (*http.Request, error)
-	DoFunc         func(client http.RoundTripper, req *http.Request) (*http.Response, error)
+	DoFunc         func(client *http.Client, req *http.Request) (*http.Response, error)
 }
 
 func (m *mockFetcherUtil) FetchData(url string) ([]byte, error) {
@@ -34,7 +34,7 @@ func (m *mockFetcherUtil) FetchData(url string) ([]byte, error) {
 	return m.fetchDataByte, nil
 }
 
-func (m *mockFetcherUtil) Do(client http.RoundTripper, req *http.Request) (*http.Response, error) {
+func (m *mockFetcherUtil) Do(client *http.Client, req *http.Request) (*http.Response, error) {
 	if m.DoFunc != nil {
 		return m.DoFunc(client, req)
 	}

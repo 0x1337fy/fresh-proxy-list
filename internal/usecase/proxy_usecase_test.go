@@ -361,7 +361,7 @@ func TestIsProxyWorking(t *testing.T) {
 			name: "Test request error",
 			fields: fields{
 				fetcherUtil: &mockFetcherUtil{
-					DoFunc: func(client http.RoundTripper, req *http.Request) (*http.Response, error) {
+					DoFunc: func(client *http.Client, req *http.Request) (*http.Response, error) {
 						return nil, fmt.Errorf("network error")
 					},
 				},
@@ -381,7 +381,7 @@ func TestIsProxyWorking(t *testing.T) {
 			name: "Test unexpected status code",
 			fields: fields{
 				fetcherUtil: &mockFetcherUtil{
-					DoFunc: func(client http.RoundTripper, req *http.Request) (*http.Response, error) {
+					DoFunc: func(client *http.Client, req *http.Request) (*http.Response, error) {
 						return &http.Response{
 							StatusCode: http.StatusInternalServerError,
 							Body:       http.NoBody,

@@ -7,17 +7,17 @@ import (
 )
 
 type FetcherUtil struct {
-	client     http.RoundTripper
+	client     *http.Client
 	newRequest func(method string, url string, body io.Reader) (*http.Request, error)
 }
 
 type FetcherUtilInterface interface {
 	NewRequest(method, url string, body io.Reader) (*http.Request, error)
-	Do(client http.RoundTripper, req *http.Request) (*http.Response, error)
+	Do(client *http.Client, req *http.Request) (*http.Response, error)
 	FetchData(url string) ([]byte, error)
 }
 
-func NewFetcher(client http.RoundTripper, newRequestFunc func(method, url string, body io.Reader) (*http.Request, error)) FetcherUtilInterface {
+func NewFetcher(client *http.Client, newRequestFunc func(method, url string, body io.Reader) (*http.Request, error)) FetcherUtilInterface {
 	return &FetcherUtil{
 		client:     client,
 		newRequest: newRequestFunc,
@@ -49,8 +49,8 @@ func (u *FetcherUtil) FetchData(url string) ([]byte, error) {
 	return body, nil
 }
 
-func (u *FetcherUtil) Do(client http.RoundTripper, req *http.Request) (*http.Response, error) {
-	return client.RoundTrip(req)
+func (u *FetcherUtil) Do(client *http.Client, req *http.Request) (*http.Response, error) {
+	return client.Do(req)
 }
 
 func (u *FetcherUtil) NewRequest(method, url string, body io.Reader) (*http.Request, error) {

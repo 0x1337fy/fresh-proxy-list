@@ -49,8 +49,7 @@ func runApplication() error {
 		return file, nil
 	}
 
-	client := http.DefaultTransport
-	fetcherUtil := utils.NewFetcher(client, createHTTPRequest)
+	fetcherUtil := utils.NewFetcher(http.DefaultClient, createHTTPRequest)
 	urlParserUtil := utils.NewURLParser()
 	sourceRepository := repository.NewSourceRepository(os.Getenv("PROXY_RESOURCES"))
 	proxyRepository := repository.NewProxyRepository()

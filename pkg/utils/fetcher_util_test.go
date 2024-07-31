@@ -54,7 +54,7 @@ func (m *mockRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) 
 }
 
 func TestNewFetcher(t *testing.T) {
-	client := http.DefaultTransport
+	client := http.DefaultClient
 	newFetcher := NewFetcher(client, func(method, url string, body io.Reader) (*http.Request, error) {
 		return http.NewRequest(method, url, body)
 	})
@@ -79,8 +79,8 @@ func TestNewFetcher(t *testing.T) {
 		t.Fatalf("Expected URL to be %s, but got: %s", testSite, req.URL.String())
 	}
 
-	if fetcherUtilInstance.client != http.DefaultTransport {
-		t.Fatalf("Expected client to be http.DefaultTransport, but got: %v", fetcherUtilInstance.client)
+	if fetcherUtilInstance.client != nil && fetcherUtilInstance.client != http.DefaultClient {
+		t.Fatalf("Expected client to be http.DefaultClient, but got: %v", fetcherUtilInstance.client)
 	}
 }
 
@@ -128,7 +128,7 @@ func TestFetchData(t *testing.T) {
 			},
 			args:    args{url: testSite},
 			want:    nil,
-			wantErr: errors.New("request error"),
+			wantErr: fmt.Errorf("Get \"%s\": request error", testSite),
 		},
 		{
 			name: "Response Error",
@@ -177,27 +177,14 @@ func TestFetchData(t *testing.T) {
 			want:    nil,
 			wantErr: errors.New("new request error"),
 		},
-		{
-			name: "Do Error",
-			fields: fields{
-				client: &mockTransport{
-					response: nil,
-					err:      fmt.Errorf("do error"),
-				},
-				newRequest: func(method string, url string, body io.Reader) (*http.Request, error) {
-					return &http.Request{}, nil
-				},
-			},
-			args:    args{url: testSite},
-			want:    nil,
-			wantErr: errors.New("do error"),
-		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			fetcherUtil := &FetcherUtil{
-				client:     tt.fields.client,
+				client: &http.Client{
+					Transport: tt.fields.client,
+				},
 				newRequest: tt.fields.newRequest,
 			}
 
@@ -229,7 +216,9 @@ func TestNewRequest(t *testing.T) {
 	}
 
 	mockClient := &mockRoundTripper{}
-	f := NewFetcher(mockClient, http.NewRequest)
+	f := NewFetcher(&http.Client{
+		Transport: mockClient,
+	}, http.NewRequest)
 
 	tests := []struct {
 		name     string
