@@ -25,7 +25,7 @@ type ProxyService struct {
 }
 
 type ProxyServiceInterface interface {
-	Check(category string, ip string, port string) (entity.Proxy, error)
+	Check(category string, ip string, port string) (*entity.Proxy, error)
 	GetTestingSite(category string) string
 	GetRandomUserAgent() string
 }
@@ -41,7 +41,7 @@ func NewProxyService(fetcherUtil utils.FetcherUtilInterface, urlParserUtil utils
 	}
 }
 
-func (s *ProxyService) Check(category string, ip string, port string) (entity.Proxy, error) {
+func (s *ProxyService) Check(category string, ip string, port string) (*entity.Proxy, error) {
 	s.semaphore <- struct{}{}
 	defer func() { <-s.semaphore }()
 
@@ -50,58 +50,71 @@ func (s *ProxyService) Check(category string, ip string, port string) (entity.Pr
 		proxy       = ip + ":" + port
 		proxyURI    = strings.ToLower(category + "://" + proxy)
 		testingSite = s.GetTestingSite(category)
+		timeout     = 60 * time.Second
 	)
 
 	if category == "HTTP" || category == "HTTPS" {
 		proxyURL, err := s.urlParserUtil.Parse(proxyURI)
 		if err != nil {
-			return entity.Proxy{}, fmt.Errorf("error parsing proxy URL: %v", err)
+			return nil, fmt.Errorf("error parsing proxy URL: %v", err)
 		}
 
 		transport = &http.Transport{
-			Proxy: http.ProxyURL(proxyURL),
-		}
-		if category == "HTTPS" {
-			transport.TLSHandshakeTimeout = 60 * time.Second
-			transport.TLSClientConfig = &tls.Config{
-				InsecureSkipVerify: true,
-			}
+			Proxy:             http.ProxyURL(proxyURL),
+			DisableKeepAlives: true,
+			DialContext: (&net.Dialer{
+				Timeout:   timeout,
+				KeepAlive: timeout,
+			}).DialContext,
+			TLSHandshakeTimeout: timeout,
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: category == "HTTPS",
+			},
 		}
 	} else if category == "SOCKS4" || category == "SOCKS5" {
 		proxyURL := socks.Dial(proxyURI)
 		transport = &http.Transport{
-			Dial: proxyURL,
+			Dial:              proxyURL,
+			DisableKeepAlives: true,
 			DialContext: (&net.Dialer{
-				Timeout: 60 * time.Second,
+				Timeout:   timeout,
+				KeepAlive: timeout,
 			}).DialContext,
 		}
 	} else {
-		return entity.Proxy{}, fmt.Errorf("proxy category %s not supported", category)
+		return nil, fmt.Errorf("proxy category %s not supported", category)
 	}
 
 	req, err := s.fetcherUtil.NewRequest("GET", testingSite, nil)
 	if err != nil {
-		return entity.Proxy{}, fmt.Errorf("error creating request: %s", err)
+		return nil, fmt.Errorf("error creating request: %s", err)
 	}
 	req.Header.Set("User-Agent", s.GetRandomUserAgent())
 
 	startTime := time.Now()
 	resp, err := s.fetcherUtil.Do(&http.Client{
 		Transport: transport,
-		Timeout:   10 * time.Second,
+		Timeout:   timeout,
 	}, req)
+
+	// statusCode := ""
+	// if err == nil {
+	// 	statusCode = http.StatusText(resp.StatusCode)
+	// }
+	// log.Printf("Check %s: %s ~> %s ~> %v", fmt.Sprintf("%-25s", proxy), fmt.Sprintf("%-30s", statusCode), testingSite, err)
+
 	if err != nil {
-		return entity.Proxy{}, fmt.Errorf("request error: %s", err)
+		return nil, fmt.Errorf("request error: %s", err)
 	}
 	defer resp.Body.Close()
 	endTime := time.Now()
 	timeTaken := endTime.Sub(startTime).Seconds()
 
 	if resp.StatusCode != http.StatusOK {
-		return entity.Proxy{}, fmt.Errorf("unexpected status code %d: %s", resp.StatusCode, http.StatusText(resp.StatusCode))
+		return nil, fmt.Errorf("unexpected status code %d: %s", resp.StatusCode, http.StatusText(resp.StatusCode))
 	}
 
-	return entity.Proxy{
+	return &entity.Proxy{
 		Proxy:     proxy,
 		IP:        ip,
 		Port:      port,
