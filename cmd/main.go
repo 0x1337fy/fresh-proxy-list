@@ -4,6 +4,7 @@ import (
 	"fresh-proxy-list/internal/entity"
 	"fresh-proxy-list/internal/infra/config"
 	"fresh-proxy-list/internal/infra/repository"
+	"fresh-proxy-list/internal/service"
 	"fresh-proxy-list/internal/usecase"
 	"fresh-proxy-list/pkg/utils"
 	"io"
@@ -23,6 +24,7 @@ import (
 type Runners struct {
 	fetcherUtil      utils.FetcherUtilInterface
 	urlParserUtil    utils.URLParserUtilInterface
+	proxyService     service.ProxyServiceInterface
 	sourceRepository repository.SourceRepositoryInterface
 	proxyRepository  repository.ProxyRepositoryInterface
 	fileRepository   repository.FileRepositoryInterface
@@ -51,6 +53,7 @@ func runApplication() error {
 
 	fetcherUtil := utils.NewFetcher(http.DefaultClient, createHTTPRequest)
 	urlParserUtil := utils.NewURLParser()
+	proxyService := service.NewProxyService(fetcherUtil, urlParserUtil)
 	sourceRepository := repository.NewSourceRepository(os.Getenv("PROXY_RESOURCES"))
 	proxyRepository := repository.NewProxyRepository()
 	fileRepository := repository.NewFileRepository(mkdirAll, create)
@@ -58,6 +61,7 @@ func runApplication() error {
 	runners := Runners{
 		fetcherUtil:      fetcherUtil,
 		urlParserUtil:    urlParserUtil,
+		proxyService:     proxyService,
 		sourceRepository: sourceRepository,
 		proxyRepository:  proxyRepository,
 		fileRepository:   fileRepository,
@@ -85,7 +89,7 @@ func run(runners Runners) error {
 
 	wg := sync.WaitGroup{}
 	proxyCategories := config.ProxyCategories
-	proxyUsecase := usecase.NewProxyUsecase(runners.proxyRepository, runners.fetcherUtil, runners.urlParserUtil)
+	proxyUsecase := usecase.NewProxyUsecase(runners.proxyRepository, runners.proxyService)
 	for i, source := range sources {
 		if _, found := slices.BinarySearch(proxyCategories, source.Category); found {
 			wg.Add(1)

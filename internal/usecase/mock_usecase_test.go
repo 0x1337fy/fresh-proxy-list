@@ -2,50 +2,34 @@ package usecase
 
 import (
 	"fresh-proxy-list/internal/entity"
-	"io"
-	"net/http"
-	"net/http/httptest"
-	"net/url"
 	"sync"
 )
 
-type mockURLParserUtil struct {
-	ParseFunc func(urlStr string) (*url.URL, error)
+type mockProxyService struct {
+	CheckFunc              func(category string, ip string, port string) (entity.Proxy, error)
+	GetTestingSiteFunc     func(category string) string
+	GetRandomUserAgentFunc func() string
 }
 
-func (m *mockURLParserUtil) Parse(urlStr string) (*url.URL, error) {
-	if m.ParseFunc != nil {
-		return m.ParseFunc(urlStr)
+func (m *mockProxyService) Check(category string, ip string, port string) (entity.Proxy, error) {
+	if m.CheckFunc != nil {
+		return m.CheckFunc(category, ip, port)
 	}
-	return url.Parse(urlStr)
+	return entity.Proxy{}, nil
 }
 
-type mockFetcherUtil struct {
-	fetchDataByte  []byte
-	fetcherError   error
-	NewRequestFunc func(method, url string, body io.Reader) (*http.Request, error)
-	DoFunc         func(client *http.Client, req *http.Request) (*http.Response, error)
-}
-
-func (m *mockFetcherUtil) FetchData(url string) ([]byte, error) {
-	if m.fetcherError != nil {
-		return nil, m.fetcherError
+func (m *mockProxyService) GetTestingSite(category string) string {
+	if m.GetTestingSiteFunc != nil {
+		return m.GetTestingSiteFunc(category)
 	}
-	return m.fetchDataByte, nil
+	return ""
 }
 
-func (m *mockFetcherUtil) Do(client *http.Client, req *http.Request) (*http.Response, error) {
-	if m.DoFunc != nil {
-		return m.DoFunc(client, req)
+func (m *mockProxyService) GetRandomUserAgent() string {
+	if m.GetRandomUserAgentFunc != nil {
+		return m.GetRandomUserAgentFunc()
 	}
-	return httptest.NewRecorder().Result(), nil
-}
-
-func (m *mockFetcherUtil) NewRequest(method, url string, body io.Reader) (*http.Request, error) {
-	if m.NewRequestFunc != nil {
-		return m.NewRequestFunc(method, url, body)
-	}
-	return http.NewRequest(method, url, body)
+	return ""
 }
 
 type mockSourceRepository struct {
