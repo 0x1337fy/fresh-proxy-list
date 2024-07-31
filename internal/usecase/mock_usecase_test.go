@@ -6,16 +6,16 @@ import (
 )
 
 type mockProxyService struct {
-	CheckFunc              func(category string, ip string, port string) (entity.Proxy, error)
+	CheckFunc              func(category string, ip string, port string) (*entity.Proxy, error)
 	GetTestingSiteFunc     func(category string) string
 	GetRandomUserAgentFunc func() string
 }
 
-func (m *mockProxyService) Check(category string, ip string, port string) (entity.Proxy, error) {
+func (m *mockProxyService) Check(category string, ip string, port string) (*entity.Proxy, error) {
 	if m.CheckFunc != nil {
 		return m.CheckFunc(category, ip, port)
 	}
-	return entity.Proxy{}, nil
+	return nil, nil
 }
 
 func (m *mockProxyService) GetTestingSite(category string) string {

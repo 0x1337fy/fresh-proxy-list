@@ -45,7 +45,7 @@ func (uc *ProxyUsecase) ProcessProxy(source entity.Source, proxy string) error {
 	}
 
 	var (
-		data entity.Proxy
+		data *entity.Proxy
 		err  error
 	)
 	ip, port := ipPort[0], ipPort[1]
@@ -55,7 +55,7 @@ func (uc *ProxyUsecase) ProcessProxy(source entity.Source, proxy string) error {
 			return err
 		}
 	} else {
-		data = entity.Proxy{
+		data = &entity.Proxy{
 			Proxy:     proxy,
 			IP:        ip,
 			Port:      port,
@@ -64,7 +64,7 @@ func (uc *ProxyUsecase) ProcessProxy(source entity.Source, proxy string) error {
 			CheckedAt: "",
 		}
 	}
-	uc.proxyRepository.Store(data)
+	uc.proxyRepository.Store(*data)
 
 	return nil
 }

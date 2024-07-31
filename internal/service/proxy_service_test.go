@@ -61,7 +61,7 @@ func (m *mockFetcherUtil) Do(client *http.Client, req *http.Request) (*http.Resp
 	return httptest.NewRecorder().Result(), nil
 }
 
-func (m *mockFetcherUtil) NewRequest(method, url string, body io.Reader) (*http.Request, error) {
+func (m *mockFetcherUtil) NewRequest(method string, url string, body io.Reader) (*http.Request, error) {
 	if m.NewRequestFunc != nil {
 		return m.NewRequestFunc(method, url, body)
 	}
@@ -111,7 +111,7 @@ func TestCheck(t *testing.T) {
 		name    string
 		fields  fields
 		args    args
-		want    entity.Proxy
+		want    *entity.Proxy
 		wantErr error
 	}{
 		{
@@ -125,7 +125,7 @@ func TestCheck(t *testing.T) {
 				ip:       testIP,
 				port:     testPort,
 			},
-			want: entity.Proxy{
+			want: &entity.Proxy{
 				Category:  testHTTPSCategory,
 				Proxy:     testProxy,
 				IP:        testIP,
@@ -150,7 +150,7 @@ func TestCheck(t *testing.T) {
 				ip:       testIP,
 				port:     testPort,
 			},
-			want:    entity.Proxy{},
+			want:    nil,
 			wantErr: errors.New("error parsing proxy URL: parse error"),
 		},
 		{
@@ -167,7 +167,7 @@ func TestCheck(t *testing.T) {
 				ip:       testIP,
 				port:     testPort,
 			},
-			want:    entity.Proxy{},
+			want:    nil,
 			wantErr: errors.New("error creating request: error creating request"),
 		},
 		{
@@ -178,7 +178,7 @@ func TestCheck(t *testing.T) {
 				ip:       testIP,
 				port:     testPort,
 			},
-			want:    entity.Proxy{},
+			want:    nil,
 			wantErr: errors.New("proxy category FTP not supported"),
 		},
 		{
@@ -196,7 +196,7 @@ func TestCheck(t *testing.T) {
 				ip:       testIP,
 				port:     testPort,
 			},
-			want:    entity.Proxy{},
+			want:    nil,
 			wantErr: errors.New("request error: network error"),
 		},
 		{
@@ -217,7 +217,7 @@ func TestCheck(t *testing.T) {
 				ip:       testIP,
 				port:     testPort,
 			},
-			want:    entity.Proxy{},
+			want:    nil,
 			wantErr: errors.New("unexpected status code 500: Internal Server Error"),
 		},
 	}
@@ -242,10 +242,10 @@ func TestCheck(t *testing.T) {
 				t.Errorf("ProxyService.Check() error = %v, want %v", err, tt.wantErr)
 			}
 
-			if !reflect.DeepEqual(got.Category, tt.want.Category) ||
+			if tt.want != nil && (!reflect.DeepEqual(got.Category, tt.want.Category) ||
 				!reflect.DeepEqual(got.Proxy, tt.want.Proxy) ||
 				!reflect.DeepEqual(got.IP, tt.want.IP) ||
-				!reflect.DeepEqual(got.Port, tt.want.Port) {
+				!reflect.DeepEqual(got.Port, tt.want.Port)) {
 				t.Errorf("ProxyService.Check() = %v, want %v", got, tt.want)
 			}
 		})

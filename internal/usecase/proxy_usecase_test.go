@@ -172,8 +172,8 @@ func TestProcessProxy(t *testing.T) {
 			}{
 				proxyRepository: &mockProxyRepository{},
 				proxyService: &mockProxyService{
-					CheckFunc: func(category string, ip string, port string) (entity.Proxy, error) {
-						return entity.Proxy{}, errors.New("proxy not valid")
+					CheckFunc: func(category string, ip string, port string) (*entity.Proxy, error) {
+						return nil, errors.New("proxy not valid")
 					},
 				},
 			},
@@ -197,8 +197,8 @@ func TestProcessProxy(t *testing.T) {
 			}{
 				proxyRepository: &mockProxyRepository{},
 				proxyService: &mockProxyService{
-					CheckFunc: func(category string, ip string, port string) (entity.Proxy, error) {
-						return mockProxy, nil
+					CheckFunc: func(category string, ip string, port string) (*entity.Proxy, error) {
+						return &mockProxy, nil
 					},
 				},
 			},
