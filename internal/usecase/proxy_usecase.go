@@ -1,50 +1,30 @@
 package usecase
 
 import (
-	"crypto/tls"
 	"fmt"
 	"fresh-proxy-list/internal/entity"
-	"fresh-proxy-list/internal/infra/config"
 	"fresh-proxy-list/internal/infra/repository"
-	"fresh-proxy-list/pkg/utils"
-	"math/rand"
-	"net"
-	"net/http"
+	"fresh-proxy-list/internal/service"
 	"strings"
 	"sync"
-	"time"
-
-	"h12.io/socks"
 )
 
 type ProxyUsecase struct {
-	proxyRepository   repository.ProxyRepositoryInterface
-	fetcherUtil       utils.FetcherUtilInterface
-	urlParserUtil     utils.URLParserUtilInterface
-	httpTestingSites  []string
-	httpsTestingSites []string
-	userAgents        []string
-	proxyMap          sync.Map
-	semaphore         chan struct{}
+	proxyRepository repository.ProxyRepositoryInterface
+	proxyService    service.ProxyServiceInterface
+	proxyMap        sync.Map
 }
 
 type ProxyUsecaseInterface interface {
 	ProcessProxy(source entity.Source, proxy string) error
-	IsProxyWorking(source entity.Source, ip string, port string) (entity.Proxy, error)
-	GetTestingSite(category string) string
-	GetRandomUserAgent() string
+	GetAllAdvancedView() []entity.AdvancedProxy
 }
 
-func NewProxyUsecase(proxyRepository repository.ProxyRepositoryInterface, fetcherUtil utils.FetcherUtilInterface, urlParserUtil utils.URLParserUtilInterface) ProxyUsecaseInterface {
+func NewProxyUsecase(proxyRepository repository.ProxyRepositoryInterface, proxyService service.ProxyServiceInterface) ProxyUsecaseInterface {
 	return &ProxyUsecase{
-		proxyRepository:   proxyRepository,
-		fetcherUtil:       fetcherUtil,
-		urlParserUtil:     urlParserUtil,
-		httpTestingSites:  config.HTTPTestingSites,
-		httpsTestingSites: config.HTTPSTestingSites,
-		userAgents:        config.UserAgents,
-		proxyMap:          sync.Map{},
-		semaphore:         make(chan struct{}, 500),
+		proxyRepository: proxyRepository,
+		proxyService:    proxyService,
+		proxyMap:        sync.Map{},
 	}
 }
 
@@ -70,7 +50,7 @@ func (uc *ProxyUsecase) ProcessProxy(source entity.Source, proxy string) error {
 	)
 	ip, port := ipPort[0], ipPort[1]
 	if source.IsChecked {
-		data, err = uc.IsProxyWorking(source, ip, port)
+		data, err = uc.proxyService.Check(source.Category, ip, port)
 		if err != nil {
 			return err
 		}
@@ -87,87 +67,6 @@ func (uc *ProxyUsecase) ProcessProxy(source entity.Source, proxy string) error {
 	uc.proxyRepository.Store(data)
 
 	return nil
-}
-
-func (uc *ProxyUsecase) IsProxyWorking(source entity.Source, ip string, port string) (entity.Proxy, error) {
-	uc.semaphore <- struct{}{}
-	defer func() { <-uc.semaphore }()
-
-	var (
-		transport   *http.Transport
-		proxy       = ip + ":" + port
-		proxyURI    = strings.ToLower(source.Category + "://" + proxy)
-		testingSite = uc.GetTestingSite(source.Category)
-	)
-
-	if source.Category == "HTTP" || source.Category == "HTTPS" {
-		proxyURL, err := uc.urlParserUtil.Parse(proxyURI)
-		if err != nil {
-			return entity.Proxy{}, fmt.Errorf("error parsing proxy URL: %v", err)
-		}
-
-		transport = &http.Transport{
-			Proxy: http.ProxyURL(proxyURL),
-		}
-		if source.Category == "HTTPS" {
-			transport.TLSHandshakeTimeout = 60 * time.Second
-			transport.TLSClientConfig = &tls.Config{
-				InsecureSkipVerify: true,
-			}
-		}
-	} else if source.Category == "SOCKS4" || source.Category == "SOCKS5" {
-		proxyURL := socks.Dial(proxyURI)
-		transport = &http.Transport{
-			Dial: proxyURL,
-			DialContext: (&net.Dialer{
-				Timeout: 60 * time.Second,
-			}).DialContext,
-		}
-	} else {
-		return entity.Proxy{}, fmt.Errorf("proxy category %s not supported", source.Category)
-	}
-
-	req, err := uc.fetcherUtil.NewRequest("GET", testingSite, nil)
-	if err != nil {
-		return entity.Proxy{}, fmt.Errorf("error creating request: %s", err)
-	}
-	req.Header.Set("User-Agent", uc.GetRandomUserAgent())
-
-	startTime := time.Now()
-	resp, err := uc.fetcherUtil.Do(&http.Client{
-		Transport: transport,
-		Timeout:   10 * time.Second,
-	}, req)
-	if err != nil {
-		return entity.Proxy{}, fmt.Errorf("request error: %s", err)
-	}
-	defer resp.Body.Close()
-	endTime := time.Now()
-	timeTaken := endTime.Sub(startTime).Seconds()
-
-	if resp.StatusCode != http.StatusOK {
-		return entity.Proxy{}, fmt.Errorf("unexpected status code %d: %s", resp.StatusCode, http.StatusText(resp.StatusCode))
-	}
-
-	return entity.Proxy{
-		Proxy:     proxy,
-		IP:        ip,
-		Port:      port,
-		Category:  source.Category,
-		CheckedAt: endTime.Format(time.RFC3339),
-		TimeTaken: timeTaken,
-	}, nil
-}
-
-func (uc *ProxyUsecase) GetTestingSite(category string) string {
-	if category == "HTTPS" {
-		return uc.httpsTestingSites[rand.Intn(len(uc.httpsTestingSites))]
-	}
-	return uc.httpTestingSites[rand.Intn(len(uc.httpTestingSites))]
-}
-
-func (uc *ProxyUsecase) GetRandomUserAgent() string {
-	return uc.userAgents[rand.Intn(len(uc.userAgents))]
 }
 
 func (uc *ProxyUsecase) GetAllAdvancedView() []entity.AdvancedProxy {

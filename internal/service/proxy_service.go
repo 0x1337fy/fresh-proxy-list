@@ -1,0 +1,123 @@
+package service
+
+import (
+	"crypto/tls"
+	"fmt"
+	"fresh-proxy-list/internal/entity"
+	"fresh-proxy-list/internal/infra/config"
+	"fresh-proxy-list/pkg/utils"
+	"math/rand"
+	"net"
+	"net/http"
+	"strings"
+	"time"
+
+	"h12.io/socks"
+)
+
+type ProxyService struct {
+	fetcherUtil       utils.FetcherUtilInterface
+	urlParserUtil     utils.URLParserUtilInterface
+	httpTestingSites  []string
+	httpsTestingSites []string
+	userAgents        []string
+	semaphore         chan struct{}
+}
+
+type ProxyServiceInterface interface {
+	Check(category string, ip string, port string) (entity.Proxy, error)
+	GetTestingSite(category string) string
+	GetRandomUserAgent() string
+}
+
+func NewProxyService(fetcherUtil utils.FetcherUtilInterface, urlParserUtil utils.URLParserUtilInterface) ProxyServiceInterface {
+	return &ProxyService{
+		fetcherUtil:       fetcherUtil,
+		urlParserUtil:     urlParserUtil,
+		httpTestingSites:  config.HTTPTestingSites,
+		httpsTestingSites: config.HTTPSTestingSites,
+		userAgents:        config.UserAgents,
+		semaphore:         make(chan struct{}, 500),
+	}
+}
+
+func (s *ProxyService) Check(category string, ip string, port string) (entity.Proxy, error) {
+	s.semaphore <- struct{}{}
+	defer func() { <-s.semaphore }()
+
+	var (
+		transport   *http.Transport
+		proxy       = ip + ":" + port
+		proxyURI    = strings.ToLower(category + "://" + proxy)
+		testingSite = s.GetTestingSite(category)
+	)
+
+	if category == "HTTP" || category == "HTTPS" {
+		proxyURL, err := s.urlParserUtil.Parse(proxyURI)
+		if err != nil {
+			return entity.Proxy{}, fmt.Errorf("error parsing proxy URL: %v", err)
+		}
+
+		transport = &http.Transport{
+			Proxy: http.ProxyURL(proxyURL),
+		}
+		if category == "HTTPS" {
+			transport.TLSHandshakeTimeout = 60 * time.Second
+			transport.TLSClientConfig = &tls.Config{
+				InsecureSkipVerify: true,
+			}
+		}
+	} else if category == "SOCKS4" || category == "SOCKS5" {
+		proxyURL := socks.Dial(proxyURI)
+		transport = &http.Transport{
+			Dial: proxyURL,
+			DialContext: (&net.Dialer{
+				Timeout: 60 * time.Second,
+			}).DialContext,
+		}
+	} else {
+		return entity.Proxy{}, fmt.Errorf("proxy category %s not supported", category)
+	}
+
+	req, err := s.fetcherUtil.NewRequest("GET", testingSite, nil)
+	if err != nil {
+		return entity.Proxy{}, fmt.Errorf("error creating request: %s", err)
+	}
+	req.Header.Set("User-Agent", s.GetRandomUserAgent())
+
+	startTime := time.Now()
+	resp, err := s.fetcherUtil.Do(&http.Client{
+		Transport: transport,
+		Timeout:   10 * time.Second,
+	}, req)
+	if err != nil {
+		return entity.Proxy{}, fmt.Errorf("request error: %s", err)
+	}
+	defer resp.Body.Close()
+	endTime := time.Now()
+	timeTaken := endTime.Sub(startTime).Seconds()
+
+	if resp.StatusCode != http.StatusOK {
+		return entity.Proxy{}, fmt.Errorf("unexpected status code %d: %s", resp.StatusCode, http.StatusText(resp.StatusCode))
+	}
+
+	return entity.Proxy{
+		Proxy:     proxy,
+		IP:        ip,
+		Port:      port,
+		Category:  category,
+		CheckedAt: endTime.Format(time.RFC3339),
+		TimeTaken: timeTaken,
+	}, nil
+}
+
+func (s *ProxyService) GetTestingSite(category string) string {
+	if category == "HTTPS" {
+		return s.httpsTestingSites[rand.Intn(len(s.httpsTestingSites))]
+	}
+	return s.httpTestingSites[rand.Intn(len(s.httpTestingSites))]
+}
+
+func (s *ProxyService) GetRandomUserAgent() string {
+	return s.userAgents[rand.Intn(len(s.userAgents))]
+}
