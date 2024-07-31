@@ -1,7 +1,7 @@
 package usecase
 
 import (
-	"context"
+	"crypto/tls"
 	"fmt"
 	"fresh-proxy-list/internal/entity"
 	"fresh-proxy-list/internal/infra/config"
@@ -98,7 +98,6 @@ func (uc *ProxyUsecase) IsProxyWorking(source entity.Source, ip string, port str
 		proxy       = ip + ":" + port
 		proxyURI    = strings.ToLower(source.Category + "://" + proxy)
 		testingSite = uc.GetTestingSite(source.Category)
-		timeout     = 5 * time.Second
 	)
 
 	if source.Category == "HTTP" || source.Category == "HTTPS" {
@@ -109,19 +108,19 @@ func (uc *ProxyUsecase) IsProxyWorking(source entity.Source, ip string, port str
 
 		transport = &http.Transport{
 			Proxy: http.ProxyURL(proxyURL),
-			DialContext: (&net.Dialer{
-				Timeout: timeout,
-			}).DialContext,
 		}
 		if source.Category == "HTTPS" {
-			transport.TLSHandshakeTimeout = timeout
+			transport.TLSHandshakeTimeout = 60 * time.Second
+			transport.TLSClientConfig = &tls.Config{
+				InsecureSkipVerify: true,
+			}
 		}
 	} else if source.Category == "SOCKS4" || source.Category == "SOCKS5" {
 		proxyURL := socks.Dial(proxyURI)
 		transport = &http.Transport{
 			Dial: proxyURL,
 			DialContext: (&net.Dialer{
-				Timeout: timeout,
+				Timeout: 60 * time.Second,
 			}).DialContext,
 		}
 	} else {
@@ -134,14 +133,11 @@ func (uc *ProxyUsecase) IsProxyWorking(source entity.Source, ip string, port str
 	}
 	req.Header.Set("User-Agent", uc.GetRandomUserAgent())
 
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-	req = req.WithContext(ctx)
-
 	startTime := time.Now()
-	resp, err := uc.fetcherUtil.Do(http.Client{
+	resp, err := uc.fetcherUtil.Do(&http.Client{
 		Transport: transport,
-	}.Transport, req)
+		Timeout:   10 * time.Second,
+	}, req)
 	if err != nil {
 		return entity.Proxy{}, fmt.Errorf("request error: %s", err)
 	}
