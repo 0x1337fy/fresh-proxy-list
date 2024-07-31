@@ -109,33 +109,33 @@ func TestProcessProxy(t *testing.T) {
 		}
 		wantErr error
 	}{
-		// {
-		// 	name: "Valid Proxy",
-		// 	fields: struct {
-		// 		proxyRepository repository.ProxyRepositoryInterface
-		// 		fetcherUtil     utils.FetcherUtilInterface
-		// 		urlParserUtil   utils.URLParserUtilInterface
-		// 	}{
-		// 		proxyRepository: &mockProxyRepository{},
-		// 		fetcherUtil: &mockFetcherUtil{
-		// 			NewRequestFunc: func(method, url string, body io.Reader) (*http.Request, error) {
-		// 				return httptest.NewRequest(method, url, body), nil
-		// 			},
-		// 		},
-		// 		urlParserUtil: &mockURLParserUtil{},
-		// 	},
-		// 	args: struct {
-		// 		source entity.Source
-		// 		proxy  string
-		// 	}{
-		// 		source: entity.Source{
-		// 			Category:  testHTTPCategory,
-		// 			IsChecked: true,
-		// 		},
-		// 		proxy: testProxy,
-		// 	},
-		// 	wantErr: nil,
-		// },
+		{
+			name: "Valid Proxy",
+			fields: struct {
+				proxyRepository repository.ProxyRepositoryInterface
+				fetcherUtil     utils.FetcherUtilInterface
+				urlParserUtil   utils.URLParserUtilInterface
+			}{
+				proxyRepository: &mockProxyRepository{},
+				fetcherUtil: &mockFetcherUtil{
+					NewRequestFunc: func(method, url string, body io.Reader) (*http.Request, error) {
+						return httptest.NewRequest(method, url, body), nil
+					},
+				},
+				urlParserUtil: &mockURLParserUtil{},
+			},
+			args: struct {
+				source entity.Source
+				proxy  string
+			}{
+				source: entity.Source{
+					Category:  testHTTPCategory,
+					IsChecked: true,
+				},
+				proxy: testProxy,
+			},
+			wantErr: nil,
+		},
 		{
 			name: "Valid Proxy with not checked",
 			fields: struct {
