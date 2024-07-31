@@ -23,9 +23,8 @@ func (m *mockURLParserUtil) Parse(urlStr string) (*url.URL, error) {
 type mockFetcherUtil struct {
 	fetchDataByte  []byte
 	fetcherError   error
-	DoFunc         func(req *http.Request) (*http.Response, error)
 	NewRequestFunc func(method, url string, body io.Reader) (*http.Request, error)
-	SetClientFunc  func(client http.RoundTripper)
+	DoFunc         func(client http.RoundTripper, req *http.Request) (*http.Response, error)
 }
 
 func (m *mockFetcherUtil) FetchData(url string) ([]byte, error) {
@@ -35,17 +34,11 @@ func (m *mockFetcherUtil) FetchData(url string) ([]byte, error) {
 	return m.fetchDataByte, nil
 }
 
-func (m *mockFetcherUtil) Do(req *http.Request) (*http.Response, error) {
+func (m *mockFetcherUtil) Do(client http.RoundTripper, req *http.Request) (*http.Response, error) {
 	if m.DoFunc != nil {
-		return m.DoFunc(req)
+		return m.DoFunc(client, req)
 	}
 	return httptest.NewRecorder().Result(), nil
-}
-
-func (m *mockFetcherUtil) SetClient(client http.RoundTripper) {
-	if m.SetClientFunc != nil {
-		m.SetClientFunc(client)
-	}
 }
 
 func (m *mockFetcherUtil) NewRequest(method, url string, body io.Reader) (*http.Request, error) {

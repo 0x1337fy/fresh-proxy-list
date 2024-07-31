@@ -281,30 +281,3 @@ func TestNewRequest(t *testing.T) {
 		})
 	}
 }
-
-func TestSetClient(t *testing.T) {
-	tests := []struct {
-		name string
-		want http.RoundTripper
-	}{
-		{
-			name: "Set client to custom value",
-			want: &http.Transport{},
-		},
-		{
-			name: "Set client to nil",
-			want: nil,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			u := NewFetcher(nil, http.NewRequest)
-			u.SetClient(tt.want)
-
-			if got := u.(*FetcherUtil).client; got != tt.want {
-				t.Errorf("SetClient() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
