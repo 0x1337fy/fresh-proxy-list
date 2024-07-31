@@ -12,10 +12,9 @@ type FetcherUtil struct {
 }
 
 type FetcherUtilInterface interface {
-	FetchData(url string) ([]byte, error)
-	Do(req *http.Request) (*http.Response, error)
 	NewRequest(method, url string, body io.Reader) (*http.Request, error)
-	SetClient(client http.RoundTripper)
+	Do(client http.RoundTripper, req *http.Request) (*http.Response, error)
+	FetchData(url string) ([]byte, error)
 }
 
 func NewFetcher(client http.RoundTripper, newRequestFunc func(method, url string, body io.Reader) (*http.Request, error)) FetcherUtilInterface {
@@ -31,7 +30,7 @@ func (u *FetcherUtil) FetchData(url string) ([]byte, error) {
 		return nil, err
 	}
 
-	resp, err := u.Do(req)
+	resp, err := u.Do(u.client, req)
 	if err != nil {
 		return nil, err
 	}
@@ -50,14 +49,10 @@ func (u *FetcherUtil) FetchData(url string) ([]byte, error) {
 	return body, nil
 }
 
-func (u *FetcherUtil) Do(req *http.Request) (*http.Response, error) {
-	return u.client.RoundTrip(req)
+func (u *FetcherUtil) Do(client http.RoundTripper, req *http.Request) (*http.Response, error) {
+	return client.RoundTrip(req)
 }
 
 func (u *FetcherUtil) NewRequest(method, url string, body io.Reader) (*http.Request, error) {
 	return http.NewRequest(method, url, body)
-}
-
-func (u *FetcherUtil) SetClient(client http.RoundTripper) {
-	u.client = client
 }

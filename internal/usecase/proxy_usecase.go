@@ -1,6 +1,7 @@
 package usecase
 
 import (
+	"context"
 	"fmt"
 	"fresh-proxy-list/internal/entity"
 	"fresh-proxy-list/internal/infra/config"
@@ -69,9 +70,6 @@ func (uc *ProxyUsecase) ProcessProxy(source entity.Source, proxy string) error {
 	)
 	ip, port := ipPort[0], ipPort[1]
 	if source.IsChecked {
-		uc.semaphore <- struct{}{}
-		defer func() { <-uc.semaphore }()
-
 		data, err = uc.IsProxyWorking(source, ip, port)
 		if err != nil {
 			return err
@@ -92,6 +90,9 @@ func (uc *ProxyUsecase) ProcessProxy(source entity.Source, proxy string) error {
 }
 
 func (uc *ProxyUsecase) IsProxyWorking(source entity.Source, ip string, port string) (entity.Proxy, error) {
+	uc.semaphore <- struct{}{}
+	defer func() { <-uc.semaphore }()
+
 	var (
 		transport   *http.Transport
 		proxy       = ip + ":" + port
@@ -127,15 +128,20 @@ func (uc *ProxyUsecase) IsProxyWorking(source entity.Source, ip string, port str
 		return entity.Proxy{}, fmt.Errorf("proxy category %s not supported", source.Category)
 	}
 
-	uc.fetcherUtil.SetClient(transport)
 	req, err := uc.fetcherUtil.NewRequest("GET", testingSite, nil)
 	if err != nil {
-		return entity.Proxy{}, err
+		return entity.Proxy{}, fmt.Errorf("error creating request: %s", err)
 	}
 	req.Header.Set("User-Agent", uc.GetRandomUserAgent())
 
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	req = req.WithContext(ctx)
+
 	startTime := time.Now()
-	resp, err := uc.fetcherUtil.Do(req)
+	resp, err := uc.fetcherUtil.Do(http.Client{
+		Transport: transport,
+	}.Transport, req)
 	if err != nil {
 		return entity.Proxy{}, fmt.Errorf("request error: %s", err)
 	}

@@ -342,7 +342,7 @@ func TestIsProxyWorking(t *testing.T) {
 				port: testPort,
 			},
 			want:    entity.Proxy{},
-			wantErr: errors.New("error creating request"),
+			wantErr: errors.New("error creating request: error creating request"),
 		},
 		{
 			name:   "Test unsupported proxy category",
@@ -361,7 +361,7 @@ func TestIsProxyWorking(t *testing.T) {
 			name: "Test request error",
 			fields: fields{
 				fetcherUtil: &mockFetcherUtil{
-					DoFunc: func(req *http.Request) (*http.Response, error) {
+					DoFunc: func(client http.RoundTripper, req *http.Request) (*http.Response, error) {
 						return nil, fmt.Errorf("network error")
 					},
 				},
@@ -381,7 +381,7 @@ func TestIsProxyWorking(t *testing.T) {
 			name: "Test unexpected status code",
 			fields: fields{
 				fetcherUtil: &mockFetcherUtil{
-					DoFunc: func(req *http.Request) (*http.Response, error) {
+					DoFunc: func(client http.RoundTripper, req *http.Request) (*http.Response, error) {
 						return &http.Response{
 							StatusCode: http.StatusInternalServerError,
 							Body:       http.NoBody,
@@ -410,6 +410,7 @@ func TestIsProxyWorking(t *testing.T) {
 				httpTestingSites:  proxyUsecase.httpTestingSites,
 				httpsTestingSites: proxyUsecase.httpsTestingSites,
 				userAgents:        proxyUsecase.userAgents,
+				semaphore:         make(chan struct{}, 10),
 			}
 
 			got, err := uc.IsProxyWorking(tt.args.source, tt.args.ip, tt.args.port)
