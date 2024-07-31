@@ -53,10 +53,11 @@ func runApplication() error {
 
 	fetcherUtil := utils.NewFetcher(http.DefaultClient, createHTTPRequest)
 	urlParserUtil := utils.NewURLParser()
+	csvWriterUtil := utils.NewCSVWriter()
 	proxyService := service.NewProxyService(fetcherUtil, urlParserUtil)
 	sourceRepository := repository.NewSourceRepository(os.Getenv("PROXY_RESOURCES"))
 	proxyRepository := repository.NewProxyRepository()
-	fileRepository := repository.NewFileRepository(mkdirAll, create)
+	fileRepository := repository.NewFileRepository(mkdirAll, create, csvWriterUtil)
 
 	runners := Runners{
 		fetcherUtil:      fetcherUtil,
