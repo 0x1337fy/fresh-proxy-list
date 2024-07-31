@@ -4,11 +4,25 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"fresh-proxy-list/pkg/utils"
 	"io"
 	"io/fs"
 	"os"
 	"strings"
 	"testing"
+)
+
+const (
+	column1          = "Column1"
+	column2          = "Column2"
+	row1Col1         = "Row1Col1"
+	row1Col2         = "Row1Col2"
+	row2Col1         = "Row2Col1"
+	row2Col2         = "Row2Col2"
+	openFileError    = "open file error"
+	writeHeaderError = "write header error"
+	writeRowError    = "write row error"
+	closeFileError   = "close file error"
 )
 
 type mockWriter struct {
@@ -26,6 +40,31 @@ func (m *mockWriter) Close() error {
 	return nil
 }
 
+type mockCSVWriterUtil struct {
+	openErr  error
+	flushErr error
+	writeErr error
+	closeErr error
+}
+
+func (m *mockCSVWriterUtil) Open(w io.Writer, c io.Closer) error {
+	return m.openErr
+}
+
+func (m *mockCSVWriterUtil) Flush() {
+	if m.flushErr != nil {
+		return
+	}
+}
+
+func (m *mockCSVWriterUtil) Write(record []string) error {
+	return m.writeErr
+}
+
+func (m *mockCSVWriterUtil) Close() error {
+	return m.closeErr
+}
+
 func TestNewFileRepository(t *testing.T) {
 	mockMkdirAll := func(path string, perm fs.FileMode) error {
 		if path == "" {
@@ -39,7 +78,8 @@ func TestNewFileRepository(t *testing.T) {
 		}
 		return &bytes.Buffer{}, nil
 	}
-	repo := NewFileRepository(mockMkdirAll, mockCreate)
+	mockCSVWriterUtil := &mockCSVWriterUtil{}
+	repo := NewFileRepository(mockMkdirAll, mockCreate, mockCSVWriterUtil)
 
 	if repo == nil {
 		t.Errorf("Expected NewFileRepository to return a non-nil FileRepositoryInterface")
@@ -65,8 +105,9 @@ func TestNewFileRepository(t *testing.T) {
 
 func TestSaveFile(t *testing.T) {
 	type fields struct {
-		mkdirAll func(path string, perm os.FileMode) error
-		create   func(name string) (io.Writer, error)
+		mkdirAll  func(path string, perm os.FileMode) error
+		create    func(name string) (io.Writer, error)
+		csvWriter utils.CSVWriterUtilInterface
 	}
 
 	type args struct {
@@ -221,6 +262,7 @@ func TestSaveFile(t *testing.T) {
 				create: func(name string) (io.Writer, error) {
 					return &bytes.Buffer{}, nil
 				},
+				csvWriter: &mockCSVWriterUtil{},
 			},
 			args: args{
 				path:   testFilePath,
@@ -239,6 +281,7 @@ func TestSaveFile(t *testing.T) {
 				create: func(name string) (io.Writer, error) {
 					return &bytes.Buffer{}, nil
 				},
+				csvWriter: &mockCSVWriterUtil{},
 			},
 			args: args{
 				path:   testFilePath,
@@ -257,6 +300,7 @@ func TestSaveFile(t *testing.T) {
 				create: func(name string) (io.Writer, error) {
 					return &bytes.Buffer{}, nil
 				},
+				csvWriter: &mockCSVWriterUtil{},
 			},
 			args: args{
 				path:   testFilePath,
@@ -275,6 +319,7 @@ func TestSaveFile(t *testing.T) {
 				create: func(name string) (io.Writer, error) {
 					return &bytes.Buffer{}, nil
 				},
+				csvWriter: &mockCSVWriterUtil{},
 			},
 			args: args{
 				path:   testFilePath,
@@ -365,8 +410,9 @@ func TestSaveFile(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			repo := &FileRepository{
-				mkdirAll: tt.fields.mkdirAll,
-				create:   tt.fields.create,
+				mkdirAll:  tt.fields.mkdirAll,
+				create:    tt.fields.create,
+				csvWriter: tt.fields.csvWriter,
 			}
 
 			err := repo.SaveFile(tt.args.path, tt.args.data, tt.args.format)
@@ -384,6 +430,121 @@ func TestSaveFile(t *testing.T) {
 						t.Errorf("SaveFile() = %v, want %v", got, tt.want)
 					}
 				}
+			}
+		})
+	}
+}
+
+func TestWriteCSV(t *testing.T) {
+	tests := []struct {
+		name   string
+		fields struct {
+			csvWriter utils.CSVWriterUtilInterface
+		}
+		args struct {
+			header *[]string
+			rows   *[][]string
+		}
+		wantErr error
+	}{
+		{
+			name: "Success",
+			fields: struct {
+				csvWriter utils.CSVWriterUtilInterface
+			}{
+				csvWriter: &mockCSVWriterUtil{},
+			},
+			args: struct {
+				header *[]string
+				rows   *[][]string
+			}{
+				header: &[]string{column1, column2},
+				rows: &[][]string{
+					{row1Col1, row1Col2},
+					{row2Col1, row2Col2},
+				},
+			},
+			wantErr: nil,
+		},
+		{
+			name: "ErrorOpeningFile",
+			fields: struct {
+				csvWriter utils.CSVWriterUtilInterface
+			}{
+				csvWriter: &mockCSVWriterUtil{
+					openErr: errors.New(openFileError),
+				},
+			},
+			args: struct {
+				header *[]string
+				rows   *[][]string
+			}{
+				header: &[]string{column1, column2},
+				rows: &[][]string{
+					{row1Col1, row1Col2},
+					{row2Col1, row2Col2},
+				},
+			},
+			wantErr: fmt.Errorf("failed to open CSV writer: %w", errors.New(openFileError)),
+		},
+		{
+			name: "ErrorWritingHeader",
+			fields: struct {
+				csvWriter utils.CSVWriterUtilInterface
+			}{
+				csvWriter: &mockCSVWriterUtil{
+					writeErr: errors.New(writeHeaderError),
+				},
+			},
+			args: struct {
+				header *[]string
+				rows   *[][]string
+			}{
+				header: &[]string{column1, column2},
+				rows: &[][]string{
+					{row1Col1, row1Col2},
+					{row2Col1, row2Col2},
+				},
+			},
+			wantErr: fmt.Errorf("failed to write header: %w", errors.New(writeHeaderError)),
+		},
+		{
+			name: "ErrorWritingRow",
+			fields: struct {
+				csvWriter utils.CSVWriterUtilInterface
+			}{
+				csvWriter: &mockCSVWriterUtil{
+					writeErr: errors.New(writeRowError),
+				},
+			},
+			args: struct {
+				header *[]string
+				rows   *[][]string
+			}{
+				header: nil,
+				rows: &[][]string{
+					{row1Col1, row1Col2},
+					{row2Col1, row2Col2},
+				},
+			},
+			wantErr: fmt.Errorf("failed to write row: %w", errors.New(writeRowError)),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			fileRepo := &FileRepository{
+				csvWriter: tt.fields.csvWriter,
+			}
+
+			err := fileRepo.writeCSV(&buf, tt.args.header, tt.args.rows)
+			if err != nil && tt.wantErr != nil {
+				if err.Error() != tt.wantErr.Error() {
+					t.Errorf("WriteCSV() error = %v, want %v", err, tt.wantErr)
+				}
+			} else if (err == nil && tt.wantErr != nil) || (err != nil && tt.wantErr == nil) {
+				t.Errorf("WriteCSV() error = %v, want %v", err, tt.wantErr)
 			}
 		})
 	}

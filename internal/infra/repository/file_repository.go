@@ -1,12 +1,11 @@
 package repository
 
 import (
-	"bytes"
-	"encoding/csv"
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
 	"fresh-proxy-list/internal/entity"
+	"fresh-proxy-list/pkg/utils"
 	"io"
 	"io/fs"
 	"os"
@@ -20,7 +19,7 @@ type FileRepository struct {
 	mkdirAll  func(path string, perm os.FileMode) error
 	create    func(name string) (io.Writer, error)
 	modePerm  fs.FileMode
-	csvWriter *csv.Writer
+	csvWriter utils.CSVWriterUtilInterface
 }
 
 type FileRepositoryInterface interface {
@@ -30,12 +29,12 @@ type FileRepositoryInterface interface {
 type MkdirAllFunc func(path string, perm os.FileMode) error
 type CreateFunc func(name string) (io.Writer, error)
 
-func NewFileRepository(mkdirAll MkdirAllFunc, create CreateFunc) FileRepositoryInterface {
+func NewFileRepository(mkdirAll MkdirAllFunc, create CreateFunc, csvWriter utils.CSVWriterUtilInterface) FileRepositoryInterface {
 	return &FileRepository{
 		mkdirAll:  mkdirAll,
 		create:    create,
 		modePerm:  fs.ModePerm,
-		csvWriter: csv.NewWriter(&bytes.Buffer{}),
+		csvWriter: csvWriter,
 	}
 }
 
@@ -98,42 +97,47 @@ func (r *FileRepository) encodeCSV(w io.Writer, data interface{}) error {
 		for i, rowElem := range proxyData {
 			rows[i] = []string{rowElem}
 		}
-		return r.writeCSV(w, nil, rows)
+		return r.writeCSV(w, nil, &rows)
 	case []entity.Proxy:
 		header := []string{"Proxy", "IP", "Port", "TimeTaken", "CheckedAt"}
 		rows := make([][]string, len(proxyData))
 		for i, proxy := range proxyData {
 			rows[i] = []string{proxy.Proxy, proxy.IP, proxy.Port, fmt.Sprintf("%v", proxy.TimeTaken), proxy.CheckedAt}
 		}
-		return r.writeCSV(w, header, rows)
+		return r.writeCSV(w, &header, &rows)
 	case []entity.AdvancedProxy:
 		header := []string{"Proxy", "IP", "Port", "Categories", "TimeTaken", "CheckedAt"}
 		rows := make([][]string, len(proxyData))
 		for i, proxy := range proxyData {
 			rows[i] = []string{proxy.Proxy, proxy.IP, proxy.Port, strings.Join(proxy.Categories, ","), fmt.Sprintf("%v", proxy.TimeTaken), proxy.CheckedAt}
 		}
-		return r.writeCSV(w, header, rows)
+		return r.writeCSV(w, &header, &rows)
 	default:
 		return fmt.Errorf("invalid data type for CSV encoding")
 	}
 }
 
-func (r *FileRepository) writeCSV(w io.Writer, header []string, rows [][]string) error {
-	csvWriter := csv.NewWriter(w)
-	defer csvWriter.Flush()
+func (r *FileRepository) writeCSV(w io.Writer, header *[]string, rows *[][]string) error {
+	if err := r.csvWriter.Open(w, nil); err != nil {
+		return fmt.Errorf("failed to open CSV writer: %w", err)
+	}
+	defer r.csvWriter.Close()
 
 	if header != nil {
-		if err := csvWriter.Write(header); err != nil {
-			return fmt.Errorf("error writing CSV header: %v", err)
+		if err := r.csvWriter.Write(*header); err != nil {
+			return fmt.Errorf("failed to write header: %w", err)
 		}
 	}
 
-	for _, row := range rows {
-		if err := csvWriter.Write(row); err != nil {
-			return fmt.Errorf("error writing CSV row: %v", err)
+	if rows != nil {
+		for _, row := range *rows {
+			if err := r.csvWriter.Write(row); err != nil {
+				return fmt.Errorf("failed to write row: %w", err)
+			}
 		}
 	}
 
+	r.csvWriter.Flush()
 	return nil
 }
 
