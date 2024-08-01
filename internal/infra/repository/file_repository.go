@@ -150,7 +150,32 @@ func (r *FileRepository) encodeJSON(w io.Writer, data interface{}) error {
 }
 
 func (r *FileRepository) encodeXML(w io.Writer, data interface{}) error {
-	err := xml.NewEncoder(w).Encode(data)
+	var err error
+	switch proxyData := data.(type) {
+	case []string:
+		view := entity.ProxyXMLClassicView{
+			XMLName: xml.Name{Local: "proxies"},
+			Proxies: make([]string, len(proxyData)),
+		}
+		copy(view.Proxies, proxyData)
+		err = xml.NewEncoder(w).Encode(view)
+	case []entity.Proxy:
+		view := entity.ProxyXMLAdvancedView{
+			XMLName: xml.Name{Local: "proxies"},
+			Proxies: make([]entity.Proxy, len(proxyData)),
+		}
+		copy(view.Proxies, proxyData)
+		err = xml.NewEncoder(w).Encode(view)
+	case []entity.AdvancedProxy:
+		view := entity.ProxyXMLAllAdvancedView{
+			XMLName: xml.Name{Local: "Proxies"},
+			Proxies: make([]entity.AdvancedProxy, len(proxyData)),
+		}
+		copy(view.Proxies, proxyData)
+		err = xml.NewEncoder(w).Encode(view)
+	}
+
+	// err := xml.NewEncoder(w).Encode(data)
 	if err != nil {
 		return fmt.Errorf("error encoding XML: %v", err)
 	}
@@ -158,7 +183,35 @@ func (r *FileRepository) encodeXML(w io.Writer, data interface{}) error {
 }
 
 func (r *FileRepository) encodeYAML(w io.Writer, data interface{}) error {
-	err := yaml.NewEncoder(w).Encode(data)
+	var err error
+	switch proxyData := data.(type) {
+	case []string:
+		view := struct {
+			Proxies []string `yaml:"proxies"`
+		}{
+			Proxies: make([]string, len(proxyData)),
+		}
+		copy(view.Proxies, proxyData)
+		err = yaml.NewEncoder(w).Encode(view)
+	case []entity.Proxy:
+		view := struct {
+			Proxies []entity.Proxy `yaml:"proxies"`
+		}{
+			Proxies: make([]entity.Proxy, len(proxyData)),
+		}
+		copy(view.Proxies, proxyData)
+		err = yaml.NewEncoder(w).Encode(view)
+	case []entity.AdvancedProxy:
+		view := struct {
+			Proxies []entity.AdvancedProxy `yaml:"proxies"`
+		}{
+			Proxies: make([]entity.AdvancedProxy, len(proxyData)),
+		}
+		copy(view.Proxies, proxyData)
+		err = yaml.NewEncoder(w).Encode(view)
+	}
+
+	// err := yaml.NewEncoder(w).Encode(data)
 	if err != nil {
 		return fmt.Errorf("error encoding YAML: %v", err)
 	}

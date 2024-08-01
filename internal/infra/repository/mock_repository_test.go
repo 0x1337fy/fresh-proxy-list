@@ -57,7 +57,7 @@ var (
 			CheckedAt:  testCheckedAt,
 		},
 	}
-	testIPsToText, _             = json.Marshal(testIPs)
-	testProxiesToString, _       = json.Marshal(testProxies)
-	testAdvancedProxiesToText, _ = json.Marshal(testAdvancedProxies)
+	testIPsToString, _             = json.Marshal(testIPs)
+	testProxiesToString, _         = json.Marshal(testProxies)
+	testAdvancedProxiesToString, _ = json.Marshal(testAdvancedProxies)
 )

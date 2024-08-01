@@ -269,7 +269,7 @@ func TestSaveFile(t *testing.T) {
 				data:   testIPs,
 				format: "csv",
 			},
-			want:    string(testIPsToText) + "\n",
+			want:    string(testIPsToString) + "\n",
 			wantErr: nil,
 		},
 		{
@@ -307,7 +307,7 @@ func TestSaveFile(t *testing.T) {
 				data:   testAdvancedProxies,
 				format: "csv",
 			},
-			want:    string(testAdvancedProxiesToText) + "\n",
+			want:    string(testAdvancedProxiesToString) + "\n",
 			wantErr: nil,
 		},
 		{
@@ -330,7 +330,25 @@ func TestSaveFile(t *testing.T) {
 			wantErr: errors.New("invalid data type for CSV encoding"),
 		},
 		{
-			name: "Encode XML",
+			name: "EncodeXMLWithStringStruct",
+			fields: fields{
+				mkdirAll: func(path string, perm os.FileMode) error {
+					return nil
+				},
+				create: func(name string) (io.Writer, error) {
+					return &bytes.Buffer{}, nil
+				},
+			},
+			args: args{
+				path:   testFilePath,
+				data:   testIPs,
+				format: "xml",
+			},
+			want:    string(testIPsToString),
+			wantErr: nil,
+		},
+		{
+			name: "EncodeXMLWithProxyStruct",
 			fields: fields{
 				mkdirAll: func(path string, perm os.FileMode) error {
 					return nil
@@ -345,6 +363,24 @@ func TestSaveFile(t *testing.T) {
 				format: "xml",
 			},
 			want:    string(testProxiesToString),
+			wantErr: nil,
+		},
+		{
+			name: "EncodeXMLWithAdvancedProxyStruct",
+			fields: fields{
+				mkdirAll: func(path string, perm os.FileMode) error {
+					return nil
+				},
+				create: func(name string) (io.Writer, error) {
+					return &bytes.Buffer{}, nil
+				},
+			},
+			args: args{
+				path:   testFilePath,
+				data:   testAdvancedProxies,
+				format: "xml",
+			},
+			want:    string(testAdvancedProxiesToString),
 			wantErr: nil,
 		},
 		{
@@ -368,7 +404,25 @@ func TestSaveFile(t *testing.T) {
 			wantErr: fmt.Errorf(testErrEncode, "XML", testErrWriting),
 		},
 		{
-			name: "Encode YAML",
+			name: "EncodeYAMLWithStringStruct",
+			fields: fields{
+				mkdirAll: func(path string, perm os.FileMode) error {
+					return nil
+				},
+				create: func(name string) (io.Writer, error) {
+					return &bytes.Buffer{}, nil
+				},
+			},
+			args: args{
+				path:   testFilePath,
+				data:   testIPs,
+				format: "yaml",
+			},
+			want:    string(testIPsToString),
+			wantErr: nil,
+		},
+		{
+			name: "EncodeYAMLWithProxyStruct",
 			fields: fields{
 				mkdirAll: func(path string, perm os.FileMode) error {
 					return nil
@@ -383,6 +437,24 @@ func TestSaveFile(t *testing.T) {
 				format: "yaml",
 			},
 			want:    string(testProxiesToString),
+			wantErr: nil,
+		},
+		{
+			name: "EncodeYAMLWithAdvancedProxyStruct",
+			fields: fields{
+				mkdirAll: func(path string, perm os.FileMode) error {
+					return nil
+				},
+				create: func(name string) (io.Writer, error) {
+					return &bytes.Buffer{}, nil
+				},
+			},
+			args: args{
+				path:   testFilePath,
+				data:   testAdvancedProxies,
+				format: "yaml",
+			},
+			want:    string(testAdvancedProxiesToString),
 			wantErr: nil,
 		},
 		{

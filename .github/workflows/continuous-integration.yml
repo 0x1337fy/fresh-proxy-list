@@ -145,7 +145,7 @@ jobs:
 
       - name: Get last commit time on ${{ vars.ARCHIVE_BRANCH_NAME }} branch
         run: |
-          echo "UPDATED_AT=$(date -d "$(git log -1 --format=%cd --date=iso-strict)" "+%A, %B %d, %Y at %H:%M:%S (GMT+07:00)")" >> $GITHUB_ENV
+          echo "UPDATED_AT=$(date -d "$(git log -1 --format=%cd --date=iso-strict)" "+%A, %B %e, %Y at %H:%M:%S (GMT+07:00)" | awk '{$1=$1; print}' >> $GITHUB_ENV
 
       - name: Count proxies
         run: |
