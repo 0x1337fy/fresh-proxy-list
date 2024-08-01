@@ -3,11 +3,16 @@ package entity
 import "encoding/xml"
 
 type ProxyXMLClassicView struct {
-	XMLName xml.Name `xml:"proxies"`
-	Proxies []string `xml:"proxy"`
+	XMLName xml.Name `xml:"Proxies"`
+	Proxies []string `xml:"Proxy"`
 }
 
 type ProxyXMLAdvancedView struct {
-	XMLName xml.Name `xml:"proxies"`
-	Proxies []Proxy  `xml:"proxy"`
+	XMLName xml.Name `xml:"Proxies"`
+	Proxies []Proxy  `xml:"Proxy"`
+}
+
+type ProxyXMLAllAdvancedView struct {
+	XMLName xml.Name        `xml:"Proxies"`
+	Proxies []AdvancedProxy `xml:"Proxy"`
 }
