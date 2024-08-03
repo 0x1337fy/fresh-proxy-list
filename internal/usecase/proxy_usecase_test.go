@@ -12,9 +12,9 @@ import (
 )
 
 var (
-	testIP           = "192.168.1.1"
+	testIP           = "13.37.0.1"
 	testPort         = "8080"
-	testProxy        = "192.168.1.1:8080"
+	testProxy        = testIP + ":" + testPort
 	testHTTPCategory = "HTTP"
 	mockProxy        = entity.Proxy{
 		Proxy:     testProxy,
@@ -119,9 +119,93 @@ func TestProcessProxy(t *testing.T) {
 					Category:  testHTTPCategory,
 					IsChecked: false,
 				},
-				proxy: "invalidProxy",
+				proxy: "invalid-proxy",
 			},
 			wantErr: errors.New("proxy format incorrect"),
+		},
+		{
+			name: "Proxy Format Not Match",
+			fields: struct {
+				proxyRepository repository.ProxyRepositoryInterface
+				proxyService    service.ProxyServiceInterface
+			}{
+				proxyRepository: &mockProxyRepository{},
+				proxyService:    &mockProxyService{},
+			},
+			args: struct {
+				source entity.Source
+				proxy  string
+			}{
+				source: entity.Source{
+					Category:  testHTTPCategory,
+					IsChecked: false,
+				},
+				proxy: "invalid-proxy:1337",
+			},
+			wantErr: errors.New("proxy format not match"),
+		},
+		{
+			name: "Proxy is Special IP With Exception IP",
+			fields: struct {
+				proxyRepository repository.ProxyRepositoryInterface
+				proxyService    service.ProxyServiceInterface
+			}{
+				proxyRepository: &mockProxyRepository{},
+				proxyService:    &mockProxyService{},
+			},
+			args: struct {
+				source entity.Source
+				proxy  string
+			}{
+				source: entity.Source{
+					Category:  testHTTPCategory,
+					IsChecked: false,
+				},
+				proxy: "127.0.0.1:1337",
+			},
+			wantErr: errors.New("proxy belongs to special ip"),
+		},
+		{
+			name: "Proxy is Special IP",
+			fields: struct {
+				proxyRepository repository.ProxyRepositoryInterface
+				proxyService    service.ProxyServiceInterface
+			}{
+				proxyRepository: &mockProxyRepository{},
+				proxyService:    &mockProxyService{},
+			},
+			args: struct {
+				source entity.Source
+				proxy  string
+			}{
+				source: entity.Source{
+					Category:  testHTTPCategory,
+					IsChecked: false,
+				},
+				proxy: "192.168.0.0:1337",
+			},
+			wantErr: errors.New("proxy belongs to special ip"),
+		},
+		{
+			name: "Proxy port more than 65535",
+			fields: struct {
+				proxyRepository repository.ProxyRepositoryInterface
+				proxyService    service.ProxyServiceInterface
+			}{
+				proxyRepository: &mockProxyRepository{},
+				proxyService:    &mockProxyService{},
+			},
+			args: struct {
+				source entity.Source
+				proxy  string
+			}{
+				source: entity.Source{
+					Category:  testHTTPCategory,
+					IsChecked: false,
+				},
+				proxy: testIP + ":65540",
+			},
+			wantErr: errors.New("proxy port format incorrect"),
 		},
 		{
 			name: "Proxy Has Been Processed",
@@ -231,6 +315,59 @@ func TestProcessProxy(t *testing.T) {
 			err := uc.ProcessProxy(tt.args.source, tt.args.proxy)
 			if err != nil && err.Error() != tt.wantErr.Error() {
 				t.Errorf("ProcessProxy() error = %v, want %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestIsInvalidIP(t *testing.T) {
+	type args struct {
+		ip string
+	}
+
+	tests := []struct {
+		name string
+		args struct {
+			ip string
+		}
+		want bool
+	}{
+		{
+			name: "Test 255.255.255.255",
+			args: args{
+				ip: "255.255.255.255",
+			},
+			want: true,
+		},
+		{
+			name: "Test ::1",
+			args: args{
+				ip: "::1",
+			},
+			want: false,
+		},
+		{
+			name: "Test 300.300.300.300",
+			args: args{
+				ip: "300.300.300.300",
+			},
+			want: true,
+		},
+		{
+			name: "Test 192.168.1",
+			args: args{
+				ip: "192.168.1",
+			},
+			want: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			uc := &ProxyUsecase{}
+			got := uc.IsSpecialIP(tt.args.ip)
+			if got != tt.want {
+				t.Errorf("For IP '%s', want %v but got %v", tt.args.ip, tt.want, got)
 			}
 		})
 	}
