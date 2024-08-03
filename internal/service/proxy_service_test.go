@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"fresh-proxy-list/internal/entity"
-	"fresh-proxy-list/internal/infra/config"
 	"fresh-proxy-list/pkg/utils"
 	"io"
 	"net/http"
@@ -71,7 +70,10 @@ func (m *mockFetcherUtil) NewRequest(method string, url string, body io.Reader) 
 func TestNewProxyService(t *testing.T) {
 	mockFetcher := &mockFetcherUtil{}
 	mockURLParser := &mockURLParserUtil{}
-	service := NewProxyService(mockFetcher, mockURLParser)
+	httpTestingSites := proxyService.httpTestingSites
+	httpsTestingSites := proxyService.httpsTestingSites
+	userAgents := proxyService.userAgents
+	service := NewProxyService(mockFetcher, mockURLParser, httpTestingSites, httpsTestingSites, userAgents)
 
 	if _, ok := service.(*ProxyService); !ok {
 		t.Errorf("NewProxyService() did not return a *ProxyService")
@@ -82,16 +84,16 @@ func TestNewProxyService(t *testing.T) {
 		t.Fatalf("Failed to cast to *ProxyService")
 	}
 
-	if !reflect.DeepEqual(pu.httpTestingSites, config.HTTPTestingSites) {
-		t.Errorf("Expected httpTestingSites %v, but got %v", config.HTTPTestingSites, pu.httpTestingSites)
+	if !reflect.DeepEqual(pu.httpTestingSites, proxyService.httpTestingSites) {
+		t.Errorf("Expected httpTestingSites %v, but got %v", proxyService.httpTestingSites, pu.httpTestingSites)
 	}
 
-	if !reflect.DeepEqual(pu.httpsTestingSites, config.HTTPSTestingSites) {
-		t.Errorf("Expected httpsTestingSites %v, but got %v", config.HTTPSTestingSites, pu.httpsTestingSites)
+	if !reflect.DeepEqual(pu.httpsTestingSites, proxyService.httpsTestingSites) {
+		t.Errorf("Expected httpsTestingSites %v, but got %v", proxyService.httpsTestingSites, pu.httpsTestingSites)
 	}
 
-	if !reflect.DeepEqual(pu.userAgents, config.UserAgents) {
-		t.Errorf("Expected userAgents %v, but got %v", config.UserAgents, pu.userAgents)
+	if !reflect.DeepEqual(pu.userAgents, proxyService.userAgents) {
+		t.Errorf("Expected userAgents %v, but got %v", proxyService.userAgents, pu.userAgents)
 	}
 }
 

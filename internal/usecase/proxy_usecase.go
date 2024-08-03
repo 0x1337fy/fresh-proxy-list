@@ -17,19 +17,27 @@ type ProxyUsecase struct {
 	proxyRepository repository.ProxyRepositoryInterface
 	proxyService    service.ProxyServiceInterface
 	proxyMap        sync.Map
+	specialIPs      []string
+	privateIPs      []net.IPNet
 }
 
 type ProxyUsecaseInterface interface {
 	ProcessProxy(source entity.Source, proxy string) error
 	IsSpecialIP(ip string) bool
-	ParseCIDR(cidr string) *net.IPNet
 	GetAllAdvancedView() []entity.AdvancedProxy
 }
 
-func NewProxyUsecase(proxyRepository repository.ProxyRepositoryInterface, proxyService service.ProxyServiceInterface) ProxyUsecaseInterface {
+func NewProxyUsecase(
+	proxyRepository repository.ProxyRepositoryInterface,
+	proxyService service.ProxyServiceInterface,
+	specialIPs []string,
+	privateIPs []net.IPNet,
+) ProxyUsecaseInterface {
 	return &ProxyUsecase{
 		proxyRepository: proxyRepository,
 		proxyService:    proxyService,
+		specialIPs:      specialIPs,
+		privateIPs:      privateIPs,
 		proxyMap:        sync.Map{},
 	}
 }
@@ -88,41 +96,22 @@ func (uc *ProxyUsecase) ProcessProxy(source entity.Source, proxy string) error {
 }
 
 func (uc *ProxyUsecase) IsSpecialIP(ip string) bool {
-	if _, found := slices.BinarySearch([]string{
-		"0.0.0.0",
-		"127.0.0.1",
-		"255.255.255.255",
-	}, ip); found {
+	if _, found := slices.BinarySearch(uc.specialIPs, ip); found {
 		return true
 	}
 
-	ipAddr := net.ParseIP(ip)
-	if ipAddr == nil {
+	ipAddress := net.ParseIP(ip)
+	if ipAddress == nil {
 		return true
 	}
 
-	privateRanges := []struct {
-		netIP *net.IPNet
-	}{
-		{netIP: uc.ParseCIDR("10.0.0.0/8")},
-		{netIP: uc.ParseCIDR("172.16.0.0/12")},
-		{netIP: uc.ParseCIDR("192.168.0.0/16")},
-		{netIP: uc.ParseCIDR("169.254.0.0/16")}, // link-local
-		{netIP: uc.ParseCIDR("240.0.0.0/4")},    // reserved for special use
-		{netIP: uc.ParseCIDR("224.0.0.0/4")},    // multicast
-	}
-	for _, r := range privateRanges {
-		if r.netIP.Contains(ipAddr) {
+	for _, r := range uc.privateIPs {
+		if r.Contains(ipAddress) {
 			return true
 		}
 	}
 
 	return false
-}
-
-func (uc *ProxyUsecase) ParseCIDR(cidr string) *net.IPNet {
-	_, netIP, _ := net.ParseCIDR(cidr)
-	return netIP
 }
 
 func (uc *ProxyUsecase) GetAllAdvancedView() []entity.AdvancedProxy {

@@ -2,7 +2,6 @@ package usecase
 
 import (
 	"fresh-proxy-list/internal/entity"
-	"fresh-proxy-list/internal/infra/config"
 	"fresh-proxy-list/internal/infra/repository"
 	"path/filepath"
 	"strings"
@@ -18,11 +17,11 @@ type FileUsecaseInterface interface {
 	SaveFiles()
 }
 
-func NewFileUsecase(fileRepository repository.FileRepositoryInterface, proxyRepository repository.ProxyRepositoryInterface) FileUsecaseInterface {
+func NewFileUsecase(fileRepository repository.FileRepositoryInterface, proxyRepository repository.ProxyRepositoryInterface, fileOutputExtensions []string) FileUsecaseInterface {
 	return &fileUsecase{
 		fileRepository:       fileRepository,
 		proxyRepository:      proxyRepository,
-		fileOutputExtensions: config.FileOutputExtensions,
+		fileOutputExtensions: fileOutputExtensions,
 	}
 }
 

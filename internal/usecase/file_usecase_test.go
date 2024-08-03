@@ -21,8 +21,8 @@ const (
 func TestSaveFiles(t *testing.T) {
 	mockFileRepo := &mockFileRepository{}
 	mockProxyRepo := &mockProxyRepository{}
-
-	usecase := NewFileUsecase(mockFileRepo, mockProxyRepo)
+	fileOutputExtensions := []string{"txt", "csv"}
+	usecase := NewFileUsecase(mockFileRepo, mockProxyRepo, fileOutputExtensions)
 
 	mockProxyRepo.GetAllClassicViewFunc = func() []string {
 		return []string{"proxy1", "proxy2"}
@@ -86,8 +86,8 @@ func TestSaveFiles(t *testing.T) {
 
 	usecase.SaveFiles()
 
-	// (5 categories * 4 extensions * 2 file types (classic, advanced)) + (5 all * 1 extension txt * 1 file type classic)
-	expectedCalls := (5 * 4 * 2) + (5 * 1 * 1)
+	// (5 categories * 2 extensions * 2 file types (classic, advanced)) + (5 all * 1 extension txt * 1 file type classic)
+	expectedCalls := (5 * 2 * 2) + (5 * 1 * 1)
 	if calls != expectedCalls {
 		t.Errorf("Expected %d calls, but got %d", expectedCalls, calls)
 	}

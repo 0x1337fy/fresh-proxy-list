@@ -3,8 +3,10 @@ package usecase
 import (
 	"errors"
 	"fresh-proxy-list/internal/entity"
+	"fresh-proxy-list/internal/infra/config"
 	"fresh-proxy-list/internal/infra/repository"
 	"fresh-proxy-list/internal/service"
+	"net"
 	"reflect"
 	"sync"
 	"testing"
@@ -32,12 +34,18 @@ var (
 		CheckedAt:  mockProxy.CheckedAt,
 		Categories: []string{testHTTPCategory},
 	}
+	specialIPs = []string{"1.1.1.1"}
+	privateIPs = []net.IPNet{
+		*config.ParseCIDR("2.2.2.2/8"),
+	}
 )
 
 func TestNewProxyUsecase(t *testing.T) {
 	mockRepo := &mockProxyRepository{}
 	mockProxyService := &mockProxyService{}
-	usecase := NewProxyUsecase(mockRepo, mockProxyService)
+	specialIPs := specialIPs
+	privateIPs := privateIPs
+	usecase := NewProxyUsecase(mockRepo, mockProxyService, specialIPs, privateIPs)
 
 	if _, ok := usecase.(*ProxyUsecase); !ok {
 		t.Errorf("NewProxyUsecase() did not return a *ProxyUsecase")
@@ -65,6 +73,14 @@ func TestNewProxyUsecase(t *testing.T) {
 	value, _ = pu.proxyMap.Load(testKey)
 	if value != testValue {
 		t.Errorf("Expected value %v after LoadOrStore, but got %v", testValue, value)
+	}
+
+	if !reflect.DeepEqual(pu.specialIPs, specialIPs) {
+		t.Errorf("Expected specialIPs %v, but got %v", specialIPs, pu.specialIPs)
+	}
+
+	if !reflect.DeepEqual(pu.privateIPs, privateIPs) {
+		t.Errorf("Expected privateIPs %v, but got %v", privateIPs, pu.privateIPs)
 	}
 }
 
@@ -145,27 +161,6 @@ func TestProcessProxy(t *testing.T) {
 			wantErr: errors.New("proxy format not match"),
 		},
 		{
-			name: "Proxy is Special IP With Exception IP",
-			fields: struct {
-				proxyRepository repository.ProxyRepositoryInterface
-				proxyService    service.ProxyServiceInterface
-			}{
-				proxyRepository: &mockProxyRepository{},
-				proxyService:    &mockProxyService{},
-			},
-			args: struct {
-				source entity.Source
-				proxy  string
-			}{
-				source: entity.Source{
-					Category:  testHTTPCategory,
-					IsChecked: false,
-				},
-				proxy: "127.0.0.1:1337",
-			},
-			wantErr: errors.New("proxy belongs to special ip"),
-		},
-		{
 			name: "Proxy is Special IP",
 			fields: struct {
 				proxyRepository repository.ProxyRepositoryInterface
@@ -182,7 +177,7 @@ func TestProcessProxy(t *testing.T) {
 					Category:  testHTTPCategory,
 					IsChecked: false,
 				},
-				proxy: "192.168.0.0:1337",
+				proxy: "1.1.1.1:1337",
 			},
 			wantErr: errors.New("proxy belongs to special ip"),
 		},
@@ -306,6 +301,8 @@ func TestProcessProxy(t *testing.T) {
 				proxyRepository: tt.fields.proxyRepository,
 				proxyService:    tt.fields.proxyService,
 				proxyMap:        sync.Map{},
+				specialIPs:      specialIPs,
+				privateIPs:      privateIPs,
 			}
 
 			if tt.name == "Proxy Has Been Processed" {
@@ -320,41 +317,73 @@ func TestProcessProxy(t *testing.T) {
 	}
 }
 
-func TestIsInvalidIP(t *testing.T) {
+func TestIsSpecialIP(t *testing.T) {
 	type args struct {
 		ip string
 	}
 
 	tests := []struct {
-		name string
+		name   string
+		fields struct {
+			specialIPs []string
+			privateIPs []net.IPNet
+		}
 		args struct {
 			ip string
 		}
 		want bool
 	}{
 		{
-			name: "Test 255.255.255.255",
+			name: "Test 1.1.1.1",
+			fields: struct {
+				specialIPs []string
+				privateIPs []net.IPNet
+			}{
+				specialIPs: specialIPs,
+				privateIPs: privateIPs,
+			},
 			args: args{
-				ip: "255.255.255.255",
+				ip: "1.1.1.1",
 			},
 			want: true,
 		},
 		{
 			name: "Test ::1",
+			fields: struct {
+				specialIPs []string
+				privateIPs []net.IPNet
+			}{
+				specialIPs: specialIPs,
+				privateIPs: privateIPs,
+			},
 			args: args{
 				ip: "::1",
 			},
 			want: false,
 		},
 		{
-			name: "Test 300.300.300.300",
+			name: "Test 2.2.2.2",
+			fields: struct {
+				specialIPs []string
+				privateIPs []net.IPNet
+			}{
+				specialIPs: specialIPs,
+				privateIPs: privateIPs,
+			},
 			args: args{
-				ip: "300.300.300.300",
+				ip: "2.2.2.2",
 			},
 			want: true,
 		},
 		{
 			name: "Test 192.168.1",
+			fields: struct {
+				specialIPs []string
+				privateIPs []net.IPNet
+			}{
+				specialIPs: specialIPs,
+				privateIPs: privateIPs,
+			},
 			args: args{
 				ip: "192.168.1",
 			},
@@ -364,7 +393,10 @@ func TestIsInvalidIP(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			uc := &ProxyUsecase{}
+			uc := &ProxyUsecase{
+				specialIPs: specialIPs,
+				privateIPs: privateIPs,
+			}
 			got := uc.IsSpecialIP(tt.args.ip)
 			if got != tt.want {
 				t.Errorf("For IP '%s', want %v but got %v", tt.args.ip, tt.want, got)
