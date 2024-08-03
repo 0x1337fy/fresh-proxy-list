@@ -40,6 +40,10 @@ func runApplication() error {
 	runtime.GOMAXPROCS(2)
 	loadEnv()
 
+	httpTestingSites := config.HTTPTestingSites
+	httpsTestingSites := config.HTTPSTestingSites
+	userAgents := config.UserAgents
+
 	mkdirAll := func(path string, perm os.FileMode) error {
 		return os.MkdirAll(path, perm)
 	}
@@ -54,7 +58,7 @@ func runApplication() error {
 	fetcherUtil := utils.NewFetcher(http.DefaultClient, createHTTPRequest)
 	urlParserUtil := utils.NewURLParser()
 	csvWriterUtil := utils.NewCSVWriter()
-	proxyService := service.NewProxyService(fetcherUtil, urlParserUtil)
+	proxyService := service.NewProxyService(fetcherUtil, urlParserUtil, httpTestingSites, httpsTestingSites, userAgents)
 	sourceRepository := repository.NewSourceRepository(os.Getenv("PROXY_RESOURCES"))
 	proxyRepository := repository.NewProxyRepository()
 	fileRepository := repository.NewFileRepository(mkdirAll, create, csvWriterUtil)
@@ -90,7 +94,9 @@ func run(runners Runners) error {
 
 	wg := sync.WaitGroup{}
 	proxyCategories := config.ProxyCategories
-	proxyUsecase := usecase.NewProxyUsecase(runners.proxyRepository, runners.proxyService)
+	specialIPs := config.SpecialIPs
+	privateIPs := config.PrivateIPs
+	proxyUsecase := usecase.NewProxyUsecase(runners.proxyRepository, runners.proxyService, specialIPs, privateIPs)
 	for i, source := range sources {
 		if _, found := slices.BinarySearch(proxyCategories, source.Category); found {
 			wg.Add(1)
@@ -131,10 +137,11 @@ func run(runners Runners) error {
 	}
 	wg.Wait()
 
-	fileUsecase := usecase.NewFileUsecase(runners.fileRepository, runners.proxyRepository)
+	fileOutputExtensions := config.FileOutputExtensions
+	fileUsecase := usecase.NewFileUsecase(runners.fileRepository, runners.proxyRepository, fileOutputExtensions)
 	fileUsecase.SaveFiles()
 
-	log.Printf("Number of proxies     : %v", len(runners.proxyRepository.GetAllAdvancedView()))
+	log.Printf("Number of proxies     : %v", len(proxyUsecase.GetAllAdvancedView()))
 	log.Printf("Time-consuming process: %v", time.Since(start))
 	return nil
 }

@@ -4,7 +4,6 @@ import (
 	"crypto/tls"
 	"fmt"
 	"fresh-proxy-list/internal/entity"
-	"fresh-proxy-list/internal/infra/config"
 	"fresh-proxy-list/pkg/utils"
 	"math/rand"
 	"net"
@@ -30,13 +29,19 @@ type ProxyServiceInterface interface {
 	GetRandomUserAgent() string
 }
 
-func NewProxyService(fetcherUtil utils.FetcherUtilInterface, urlParserUtil utils.URLParserUtilInterface) ProxyServiceInterface {
+func NewProxyService(
+	fetcherUtil utils.FetcherUtilInterface,
+	urlParserUtil utils.URLParserUtilInterface,
+	httpTestingSites []string,
+	httpsTestingSites []string,
+	userAgents []string,
+) ProxyServiceInterface {
 	return &ProxyService{
 		fetcherUtil:       fetcherUtil,
 		urlParserUtil:     urlParserUtil,
-		httpTestingSites:  config.HTTPTestingSites,
-		httpsTestingSites: config.HTTPSTestingSites,
-		userAgents:        config.UserAgents,
+		httpTestingSites:  httpTestingSites,
+		httpsTestingSites: httpsTestingSites,
+		userAgents:        userAgents,
 		semaphore:         make(chan struct{}, 500),
 	}
 }
