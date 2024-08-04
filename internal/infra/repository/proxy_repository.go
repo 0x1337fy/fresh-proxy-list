@@ -9,7 +9,6 @@ import (
 
 type ProxyRepository struct {
 	mu                 sync.RWMutex
-	proxyMap           sync.Map
 	allClassicView     []string
 	httpClassicView    []string
 	httpsClassicView   []string
@@ -38,8 +37,7 @@ type ProxyRepositoryInterface interface {
 
 func NewProxyRepository() ProxyRepositoryInterface {
 	return &ProxyRepository{
-		mu:       sync.RWMutex{},
-		proxyMap: sync.Map{},
+		mu: sync.RWMutex{},
 	}
 }
 
@@ -47,18 +45,17 @@ func (r *ProxyRepository) Store(proxy *entity.Proxy) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	findIndex := func(slice []entity.AdvancedProxy, target entity.AdvancedProxy) (int, bool) {
-		for i, item := range slice {
+	findIndex := func(slice *[]entity.AdvancedProxy, target *entity.AdvancedProxy) (int, bool) {
+		for i, item := range *slice {
 			if item.Proxy == target.Proxy {
 				return i, true
 			}
 		}
-
 		return -1, false
 	}
 
 	updateProxyAll := func(proxy *entity.Proxy, classicList *[]string, advancedList *[]entity.AdvancedProxy) {
-		n, found := findIndex(*advancedList, entity.AdvancedProxy{Proxy: proxy.Proxy})
+		n, found := findIndex(advancedList, &entity.AdvancedProxy{Proxy: proxy.Proxy})
 		if found {
 			if proxy.Category == "HTTP" {
 				(*advancedList)[n].TimeTaken = proxy.TimeTaken
@@ -118,61 +115,41 @@ func (r *ProxyRepository) Store(proxy *entity.Proxy) {
 }
 
 func (r *ProxyRepository) GetAllClassicView() []string {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
 	return r.allClassicView
 }
 
 func (r *ProxyRepository) GetHTTPClassicView() []string {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
 	return r.httpClassicView
 }
 
 func (r *ProxyRepository) GetHTTPSClassicView() []string {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
 	return r.httpsClassicView
 }
 
 func (r *ProxyRepository) GetSOCKS4ClassicView() []string {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
 	return r.socks4ClassicView
 }
 
 func (r *ProxyRepository) GetSOCKS5ClassicView() []string {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
 	return r.socks5ClassicView
 }
 
 func (r *ProxyRepository) GetAllAdvancedView() []entity.AdvancedProxy {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
 	return r.allAdvancedView
 }
 
 func (r *ProxyRepository) GetHTTPAdvancedView() []entity.Proxy {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
 	return r.httpAdvancedView
 }
 
 func (r *ProxyRepository) GetHTTPSAdvancedView() []entity.Proxy {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
 	return r.httpsAdvancedView
 }
 
 func (r *ProxyRepository) GetSOCKS4AdvancedView() []entity.Proxy {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
 	return r.socks4AdvancedView
 }
 
 func (r *ProxyRepository) GetSOCKS5AdvancedView() []entity.Proxy {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
 	return r.socks5AdvancedView
 }
