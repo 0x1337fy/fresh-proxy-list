@@ -58,30 +58,14 @@ jobs:
           git config --global user.name $(git log --reverse --format='%an' | head -n 1)
           git config --global pull.rebase false
 
-      - name: Check if ${{ vars.ARCHIVE_BRANCH_NAME }} branch exists
+      - name: Fetch from main branch to ${{ vars.ARCHIVE_BRANCH_NAME }} branch
         run: |
-          if git ls-remote --heads origin ${{ vars.ARCHIVE_BRANCH_NAME }} > /dev/null; then
-            echo "Branch exists."
-            echo "BRANCH_EXISTS=true" >> $GITHUB_ENV
-          else
-            echo "Branch does not exist."
-            echo "BRANCH_EXISTS=false" >> $GITHUB_ENV
-          fi
-
-      - name: Create ${{ vars.ARCHIVE_BRANCH_NAME }} branch if it doesn't exist
-        if: env.BRANCH_EXISTS == 'false'
-        run: |
-          git checkout -b ${{ vars.ARCHIVE_BRANCH_NAME }}
-          git push origin ${{ vars.ARCHIVE_BRANCH_NAME }}
+          git fetch origin main:${{ vars.ARCHIVE_BRANCH_NAME }}
 
       - name: Checkout ${{ vars.ARCHIVE_BRANCH_NAME }} branch
         uses: actions/checkout@v4
         with:
           ref: ${{ vars.ARCHIVE_BRANCH_NAME }}
-
-      - name: Pull changes form main branch
-        run: |
-          git merge main
 
       - name: Set up Go
         uses: actions/setup-go@v5
