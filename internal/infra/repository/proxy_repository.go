@@ -46,18 +46,20 @@ func (r *ProxyRepository) Store(proxy *entity.Proxy) {
 	defer r.mu.Unlock()
 
 	findIndex := func(slice *[]entity.AdvancedProxy, target *entity.AdvancedProxy) (int, bool) {
-		for i, item := range *slice {
-			if item.Proxy == target.Proxy {
-				return i, true
-			}
+		index := sort.Search(len(*slice), func(i int) bool {
+			return (*slice)[i].Proxy >= target.Proxy
+		})
+		if index < len(*slice) && (*slice)[index].Proxy == target.Proxy {
+			return index, true
+		} else {
+			return index, false
 		}
-		return -1, false
 	}
 
 	updateProxyAll := func(proxy *entity.Proxy, classicList *[]string, advancedList *[]entity.AdvancedProxy) {
 		n, found := findIndex(advancedList, &entity.AdvancedProxy{Proxy: proxy.Proxy})
 		if found {
-			if proxy.Category == "HTTP" {
+			if proxy.Category == "HTTP" && proxy.TimeTaken > 0 {
 				(*advancedList)[n].TimeTaken = proxy.TimeTaken
 			}
 
@@ -67,7 +69,7 @@ func (r *ProxyRepository) Store(proxy *entity.Proxy) {
 			}
 		} else {
 			*classicList = append(*classicList, proxy.Proxy)
-			*advancedList = append(*advancedList, entity.AdvancedProxy{
+			*advancedList = slices.Insert(*advancedList, n, entity.AdvancedProxy{
 				Proxy:     proxy.Proxy,
 				IP:        proxy.IP,
 				Port:      proxy.Port,
