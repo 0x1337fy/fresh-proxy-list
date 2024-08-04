@@ -47,11 +47,6 @@ jobs:
       contents: write
 
     steps:
-      - name: Checkout main branch
-        uses: actions/checkout@v4
-        with:
-          ref: main
-
       - name: Configure GIT
         run: |
           git config --global user.email $(git log --reverse --format='%ae' | head -n 1)
@@ -60,7 +55,6 @@ jobs:
 
       - name: Check if ${{ vars.ARCHIVE_BRANCH_NAME }} branch exists
         run: |
-          git fetch origin --no-tags
           if git show-ref --verify --quiet refs/remotes/origin/${{ vars.ARCHIVE_BRANCH_NAME }}; then
             echo "Branch exists."
             echo "BRANCH_EXISTS=true" >> $GITHUB_ENV
@@ -78,7 +72,6 @@ jobs:
       - name: Checkout ${{ vars.ARCHIVE_BRANCH_NAME }} branch
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
           ref: ${{ vars.ARCHIVE_BRANCH_NAME }}
 
       - name: Pull changes form main branch
@@ -133,15 +126,15 @@ jobs:
       contents: write
 
     steps:
-      - name: Checkout ${{ vars.ARCHIVE_BRANCH_NAME }} branch
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ vars.ARCHIVE_BRANCH_NAME }}
-
       - name: Configure GIT
         run: |
           git config --global user.email $(git log --reverse --format='%ae' | head -n 1)
           git config --global user.name $(git log --reverse --format='%an' | head -n 1)
+
+      - name: Checkout ${{ vars.ARCHIVE_BRANCH_NAME }} branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ vars.ARCHIVE_BRANCH_NAME }}
 
       - name: Get last commit time on ${{ vars.ARCHIVE_BRANCH_NAME }} branch
         run: |
