@@ -37,29 +37,29 @@
 [![Discussions][discussions::shield]][discussions::url]
 [![Issues][issues::shield]][issues::url]
 
-An automatically ⏰ updated list of free `HTTP`, `HTTPS`, `SOCKS4`, and `SOCKS5` proxies, available in multiple formats including `TXT`, `CSV`, `JSON`, `XML`, and `YAML`. The list is refreshed ⚡ **hourly** to provide the most accurate 🎯 and up-to-date information. The current data snapshot was 🚀 last updated on `Sunday, August 4, 2024 at 19:42:41 (GMT+07:00)`, ensuring that users have access to the latest and most reliable proxies 🍃 available.
+An automatically ⏰ updated list of free `HTTP`, `HTTPS`, `SOCKS4`, and `SOCKS5` proxies, available in multiple formats including `TXT`, `CSV`, `JSON`, `XML`, and `YAML`. The list is refreshed ⚡ **hourly** to provide the most accurate 🎯 and up-to-date information. The current data snapshot was 🚀 last updated on `Sunday, August 4, 2024 at 20:22:57 (GMT+07:00)`, ensuring that users have access to the latest and most reliable proxies 🍃 available.
 
 <picture>
-  <img alt="HTTP" src="https://img.shields.io/badge/HTTP-65391-4b9081?style=social&logo=adminer" />
+  <img alt="HTTP" src="https://img.shields.io/badge/HTTP-65666-4b9081?style=social&logo=adminer" />
 </picture>
 &nbsp;
 <picture>
-  <img alt="HTTPS" src="https://img.shields.io/badge/HTTPS-15017-4b9081?style=social&logo=adminer" />
+  <img alt="HTTPS" src="https://img.shields.io/badge/HTTPS-15290-4b9081?style=social&logo=adminer" />
 </picture>
 &nbsp;
 <picture>
-  <img alt="SOCKS4" src="https://img.shields.io/badge/SOCKS4-23178-4b9081?style=social&logo=adminer" />
+  <img alt="SOCKS4" src="https://img.shields.io/badge/SOCKS4-23614-4b9081?style=social&logo=adminer" />
 </picture>
 &nbsp;
 <picture>
-  <img alt="SOCKS5" src="https://img.shields.io/badge/SOCKS5-40996-4b9081?style=social&logo=adminer" />
+  <img alt="SOCKS5" src="https://img.shields.io/badge/SOCKS5-41227-4b9081?style=social&logo=adminer" />
 </picture>
 
 </div>
 
 ## 📃 About
 
-This repository contains a free list of tested `HTTP/S` and `SOCKS4/5` proxies.
+This repository contains a free list of `HTTP/S` and `SOCKS4/5` proxies.
 
 - [x] 24/7 hourly updates (Committing since August 2024)
 - [x] Supported list formats: `TXT`, `CSV`, `JSON`, `XML`, and `YAML`
@@ -95,64 +95,64 @@ Duplicated proxies are removed — the only exception is if an IP has a differen
 HTTP
 
 ```txt
-65.49.38.202:3128
-78.47.19.96:443
-172.67.181.168:80
-141.101.123.224:80
-103.115.31.3:8080
-167.103.6.183:11194
-3.90.100.12:3128
-79.130.12.140:80
-185.162.228.55:80
-112.78.177.136:5678
+190.80.188.90:999
+200.111.232.94:8080
+141.101.121.229:80
+72.10.164.178:15421
+172.67.185.188:80
+67.43.227.227:3253
+38.131.53.34:4621
+31.46.33.59:53281
+103.21.244.189:80
+178.18.250.151:36297
 
 ```
 
 HTTPS
 
 ```txt
-45.173.7.10:999
-8.148.24.225:8081
-181.129.183.19:53281
-205.178.137.31:8443
-110.74.203.250:8080
-65.183.111.202:3128
-94.231.178.249:9797
-67.43.228.250:23943
-136.226.102.193:10878
-165.225.17.77:10878
+136.226.232.176:11194
+198.16.70.29:435
+147.161.190.83:11194
+187.216.229.150:8080
+103.155.166.92:8181
+103.241.129.200:8443
+88.80.150.7:3510
+45.71.202.147:1993
+91.239.17.22:8080
+3.124.133.93:3128
 
 ```
 
 SOCKS4
 
 ```txt
-77.242.132.113:5678
-187.94.220.85:8080
-101.109.176.76:8080
-46.105.44.29:17846
-103.176.108.105:1433
-210.79.146.98:8080
-94.79.152.14:80
-190.121.128.217:999
-217.73.177.180:33080
-80.69.184.192:4153
+172.67.220.35:80
+31.47.37.116:8080
+132.148.128.8:58924
+103.169.254.9:8090
+79.175.189.51:1080
+47.92.194.235:9080
+138.68.225.200:80
+185.75.5.158:43131
+198.154.190.187:5678
+165.227.31.218:19090
 
 ```
 
 SOCKS5
 
 ```txt
-37.187.73.7:48425
-122.202.3.137:5678
-159.65.0.8:3128
-36.92.70.209:8080
-182.48.65.192:5678
-103.87.169.184:56642
-38.54.71.67:80
-67.213.212.40:44363
-89.39.107.35:11788
-195.154.43.86:64443
+170.81.160.124:42832
+8.219.43.134:2020
+173.212.223.23:51183
+154.236.168.179:1976
+38.91.107.229:41622
+168.205.217.13:4145
+104.165.127.178:3128
+41.65.71.151:1976
+121.13.252.58:61401
+38.91.107.220:41443
 
 ```
 
