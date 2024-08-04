@@ -50,6 +50,7 @@ jobs:
       - name: Checkout main branch
         uses: actions/checkout@v4
         with:
+          fetch-depth: 0
           ref: main
 
       - name: Configure GIT
@@ -59,7 +60,6 @@ jobs:
 
       - name: Check if ${{ vars.ARCHIVE_BRANCH_NAME }} branch exists
         run: |
-          git fetch origin --no-tags
           if git show-ref --verify --quiet refs/remotes/origin/${{ vars.ARCHIVE_BRANCH_NAME }}; then
             echo "Branch exists."
             echo "BRANCH_EXISTS=true" >> $GITHUB_ENV
@@ -73,6 +73,7 @@ jobs:
         run: |
           git checkout -b ${{ vars.ARCHIVE_BRANCH_NAME }}
           git push origin ${{ vars.ARCHIVE_BRANCH_NAME }}
+          git config --global pull.rebase false
 
       - name: Checkout ${{ vars.ARCHIVE_BRANCH_NAME }} branch
         uses: actions/checkout@v4
