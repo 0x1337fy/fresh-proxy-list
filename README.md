@@ -37,29 +37,29 @@
 [![Discussions][discussions::shield]][discussions::url]
 [![Issues][issues::shield]][issues::url]
 
-An automatically ⏰ updated list of free `HTTP`, `HTTPS`, `SOCKS4`, and `SOCKS5` proxies, available in multiple formats including `TXT`, `CSV`, `JSON`, `XML`, and `YAML`. The list is refreshed ⚡ **hourly** to provide the most accurate 🎯 and up-to-date information. The current data snapshot was 🚀 last updated on `Sunday, August 4, 2024 at 18:25:09 (GMT+07:00)`, ensuring that users have access to the latest and most reliable proxies 🍃 available.
+An automatically ⏰ updated list of free `HTTP`, `HTTPS`, `SOCKS4`, and `SOCKS5` proxies, available in multiple formats including `TXT`, `CSV`, `JSON`, `XML`, and `YAML`. The list is refreshed ⚡ **hourly** to provide the most accurate 🎯 and up-to-date information. The current data snapshot was 🚀 last updated on `Sunday, August 4, 2024 at 20:30:28 (GMT+07:00)`, ensuring that users have access to the latest and most reliable proxies 🍃 available.
 
 <picture>
-  <img alt="HTTP" src="https://img.shields.io/badge/HTTP-65768-4b9081?style=social&logo=adminer" />
+  <img alt="HTTP" src="https://img.shields.io/badge/HTTP-65678-4b9081?style=social&logo=adminer" />
 </picture>
 &nbsp;
 <picture>
-  <img alt="HTTPS" src="https://img.shields.io/badge/HTTPS-17535-4b9081?style=social&logo=adminer" />
+  <img alt="HTTPS" src="https://img.shields.io/badge/HTTPS-16604-4b9081?style=social&logo=adminer" />
 </picture>
 &nbsp;
 <picture>
-  <img alt="SOCKS4" src="https://img.shields.io/badge/SOCKS4-23338-4b9081?style=social&logo=adminer" />
+  <img alt="SOCKS4" src="https://img.shields.io/badge/SOCKS4-23640-4b9081?style=social&logo=adminer" />
 </picture>
 &nbsp;
 <picture>
-  <img alt="SOCKS5" src="https://img.shields.io/badge/SOCKS5-41006-4b9081?style=social&logo=adminer" />
+  <img alt="SOCKS5" src="https://img.shields.io/badge/SOCKS5-41238-4b9081?style=social&logo=adminer" />
 </picture>
 
 </div>
 
 ## 📃 About
 
-This repository contains a free list of tested `HTTP/S` and `SOCKS4/5` proxies.
+This repository contains a free list of `HTTP/S` and `SOCKS4/5` proxies.
 
 - [x] 24/7 hourly updates (Committing since August 2024)
 - [x] Supported list formats: `TXT`, `CSV`, `JSON`, `XML`, and `YAML`
@@ -95,64 +95,64 @@ Duplicated proxies are removed — the only exception is if an IP has a differen
 HTTP
 
 ```txt
-102.244.120.10:45413
-179.52.208.6:999
-45.70.201.50:999
-91.210.228.148:8080
-67.43.236.20:12425
-67.43.236.20:32585
-172.67.167.250:80
-115.223.31.90:42648
-20.199.18.126:8080
-103.148.113.148:1234
+72.10.160.93:1563
+46.174.37.22:8080
+72.10.160.90:24647
+147.161.186.173:11143
+72.10.160.170:13467
+195.138.73.54:31145
+198.16.70.29:1007
+45.11.95.165:5041
+67.43.227.227:1845
+67.43.228.253:5205
 
 ```
 
 HTTPS
 
 ```txt
-89.23.112.143:80
-67.43.228.253:20099
-23.106.56.54:425
-45.184.124.9:1985
-120.26.0.11:8880
-170.85.6.178:10878
-103.143.169.57:84
-165.225.196.157:11143
-151.115.78.51:443
-136.226.66.250:10160
+165.225.216.156:10878
+5.75.144.136:8080
+165.225.226.174:11143
+206.188.209.132:8447
+136.226.167.34:10878
+67.43.228.253:21581
+3.211.179.52:80
+176.98.81.85:8080
+47.116.126.57:8081
+136.226.65.31:10160
 
 ```
 
 SOCKS4
 
 ```txt
-178.128.32.189:9090
-103.26.110.110:84
-91.192.24.97:4153
-45.190.178.25:4153
-181.224.205.18:999
-103.162.63.121:8080
-46.36.65.117:1080
-85.133.130.18:8080
-202.131.159.58:5678
-159.138.255.141:8047
+152.53.36.109:43018
+211.13.237.113:3128
+8.209.253.237:8888
+67.213.212.51:26730
+178.49.236.109:1080
+49.254.138.186:6545
+89.43.5.134:3629
+132.148.155.180:16859
+2.32.87.44:58080
+181.57.138.70:4153
 
 ```
 
 SOCKS5
 
 ```txt
-212.83.138.132:43913
-208.65.90.192:4145
-23.105.170.32:40487
-167.249.29.218:999
-161.97.143.60:30903
-182.79.60.210:3129
-190.2.209.58:999
-67.213.212.39:56532
-108.181.132.115:45679
-51.91.106.22:57108
+95.216.124.2:1080
+212.83.142.158:12344
+109.236.86.33:12101
+84.247.236.86:60606
+104.239.37.9:5661
+108.181.133.59:23408
+174.138.176.77:47753
+91.241.131.179:9834
+66.29.128.245:11284
+104.248.234.59:34821
 
 ```
 
