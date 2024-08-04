@@ -52,7 +52,7 @@ func (m *mockFileRepository) SaveFile(filename string, data interface{}, ext str
 }
 
 type mockProxyRepository struct {
-	StoreFunc                 func(proxy entity.Proxy)
+	StoreFunc                 func(proxy *entity.Proxy)
 	GetAllClassicViewFunc     func() []string
 	GetHTTPClassicViewFunc    func() []string
 	GetHTTPSClassicViewFunc   func() []string
@@ -69,10 +69,10 @@ type mockProxyRepository struct {
 	IsProxyWorkingFunc func(entity.Source, string, string) (entity.Proxy, error)
 }
 
-func (m *mockProxyRepository) Store(proxy entity.Proxy) {
+func (m *mockProxyRepository) Store(proxy *entity.Proxy) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	m.storedProxies = append(m.storedProxies, proxy)
+	m.storedProxies = append(m.storedProxies, *proxy)
 }
 
 func (m *mockProxyRepository) GetStoredProxies() []entity.Proxy {

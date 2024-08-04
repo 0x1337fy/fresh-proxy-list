@@ -73,8 +73,10 @@ func (uc *ProxyUsecase) ProcessProxy(source entity.Source, proxy string) error {
 		return fmt.Errorf("proxy has been processed")
 	}
 
-	var data *entity.Proxy
-	proxyIP, proxyPort := proxyParts[0], proxyParts[1]
+	var (
+		data               *entity.Proxy
+		proxyIP, proxyPort = proxyParts[0], proxyParts[1]
+	)
 	if source.IsChecked {
 		data, err = uc.proxyService.Check(source.Category, proxyIP, proxyPort)
 		if err != nil {
@@ -90,7 +92,7 @@ func (uc *ProxyUsecase) ProcessProxy(source entity.Source, proxy string) error {
 			CheckedAt: "",
 		}
 	}
-	uc.proxyRepository.Store(*data)
+	uc.proxyRepository.Store(data)
 
 	return nil
 }

@@ -281,22 +281,22 @@ func TestProxyRepository(t *testing.T) {
 			name: "Duplicate proxy",
 			fields: fields{
 				allClassicView:    []string{testProxy1, testProxy2},
-				httpClassicView:   []string{testProxy2, testProxy1},
+				httpClassicView:   []string{testProxy1, testProxy2},
 				httpsClassicView:  []string{},
 				socks4ClassicView: []string{},
 				socks5ClassicView: []string{},
 				allAdvancedView: []entity.AdvancedProxy{
 					{
-						Proxy:      testProxy2,
-						IP:         testIP2,
+						Proxy:      testProxy1,
+						IP:         testIP1,
 						Port:       testPort,
 						TimeTaken:  testTimeTaken,
 						CheckedAt:  testCheckedAt,
 						Categories: []string{testHTTPCategory},
 					},
 					{
-						Proxy:      testProxy1,
-						IP:         testIP1,
+						Proxy:      testProxy2,
+						IP:         testIP2,
 						Port:       testPort,
 						TimeTaken:  testTimeTaken,
 						CheckedAt:  testCheckedAt,
@@ -306,17 +306,17 @@ func TestProxyRepository(t *testing.T) {
 				httpAdvancedView: []entity.Proxy{
 					{
 						Category:  testHTTPCategory,
-						IP:        testIP2,
+						IP:        testIP1,
 						Port:      testPort,
-						Proxy:     testProxy2,
+						Proxy:     testProxy1,
 						TimeTaken: testTimeTaken,
 						CheckedAt: testCheckedAt,
 					},
 					{
 						Category:  testHTTPCategory,
-						IP:        testIP1,
+						IP:        testIP2,
 						Port:      testPort,
-						Proxy:     testProxy1,
+						Proxy:     testProxy2,
 						TimeTaken: testTimeTaken,
 						CheckedAt: testCheckedAt,
 					},
@@ -337,7 +337,7 @@ func TestProxyRepository(t *testing.T) {
 			},
 			want: fields{
 				allClassicView:    []string{testProxy1, testProxy2},
-				httpClassicView:   []string{testProxy2, testProxy1, testProxy1},
+				httpClassicView:   []string{testProxy1, testProxy2, testProxy1},
 				httpsClassicView:  []string{},
 				socks4ClassicView: []string{},
 				socks5ClassicView: []string{},
@@ -362,17 +362,17 @@ func TestProxyRepository(t *testing.T) {
 				httpAdvancedView: []entity.Proxy{
 					{
 						Category:  testHTTPCategory,
-						IP:        testIP2,
+						IP:        testIP1,
 						Port:      testPort,
-						Proxy:     testProxy2,
+						Proxy:     testProxy1,
 						TimeTaken: testTimeTaken,
 						CheckedAt: testCheckedAt,
 					},
 					{
 						Category:  testHTTPCategory,
-						IP:        testIP1,
+						IP:        testIP2,
 						Port:      testPort,
-						Proxy:     testProxy1,
+						Proxy:     testProxy2,
 						TimeTaken: testTimeTaken,
 						CheckedAt: testCheckedAt,
 					},
@@ -490,7 +490,7 @@ func TestProxyRepository(t *testing.T) {
 				socks4AdvancedView: tt.fields.socks4AdvancedView,
 				socks5AdvancedView: tt.fields.socks5AdvancedView,
 			}
-			r.Store(tt.args.proxy)
+			r.Store(&tt.args.proxy)
 
 			if !reflect.DeepEqual(r.allClassicView, tt.want.allClassicView) {
 				t.Errorf("GetAllClassicView() = %v, want %v", r.allClassicView, tt.want.allClassicView)

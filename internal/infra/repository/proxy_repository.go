@@ -1,7 +1,6 @@
 package repository
 
 import (
-	"cmp"
 	"fresh-proxy-list/internal/entity"
 	"slices"
 	"sort"
@@ -10,6 +9,7 @@ import (
 
 type ProxyRepository struct {
 	mu                 sync.RWMutex
+	proxyMap           sync.Map
 	allClassicView     []string
 	httpClassicView    []string
 	httpsClassicView   []string
@@ -23,7 +23,7 @@ type ProxyRepository struct {
 }
 
 type ProxyRepositoryInterface interface {
-	Store(proxy entity.Proxy)
+	Store(proxy *entity.Proxy)
 	GetAllClassicView() []string
 	GetHTTPClassicView() []string
 	GetHTTPSClassicView() []string
@@ -38,21 +38,27 @@ type ProxyRepositoryInterface interface {
 
 func NewProxyRepository() ProxyRepositoryInterface {
 	return &ProxyRepository{
-		mu: sync.RWMutex{},
+		mu:       sync.RWMutex{},
+		proxyMap: sync.Map{},
 	}
 }
 
-func (r *ProxyRepository) Store(proxy entity.Proxy) {
+func (r *ProxyRepository) Store(proxy *entity.Proxy) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	updateProxyAll := func(proxy entity.Proxy, classicList *[]string, advancedList *[]entity.AdvancedProxy) {
-		sort.Slice(*advancedList, func(i, j int) bool {
-			return cmp.Compare((*advancedList)[i].Proxy, (*advancedList)[j].Proxy) < 0
-		})
-		n, found := slices.BinarySearchFunc(*advancedList, entity.AdvancedProxy{Proxy: proxy.Proxy}, func(a, b entity.AdvancedProxy) int {
-			return cmp.Compare(a.Proxy, b.Proxy)
-		})
+	findIndex := func(slice []entity.AdvancedProxy, target entity.AdvancedProxy) (int, bool) {
+		for i, item := range slice {
+			if item.Proxy == target.Proxy {
+				return i, true
+			}
+		}
+
+		return -1, false
+	}
+
+	updateProxyAll := func(proxy *entity.Proxy, classicList *[]string, advancedList *[]entity.AdvancedProxy) {
+		n, found := findIndex(*advancedList, entity.AdvancedProxy{Proxy: proxy.Proxy})
 		if found {
 			if proxy.Category == "HTTP" {
 				(*advancedList)[n].TimeTaken = proxy.TimeTaken
@@ -84,28 +90,28 @@ func (r *ProxyRepository) Store(proxy entity.Proxy) {
 			httpAdvancedView = &r.httpAdvancedView
 		)
 		*httpClassicView = append(*httpClassicView, proxy.Proxy)
-		*httpAdvancedView = append(*httpAdvancedView, proxy)
+		*httpAdvancedView = append(*httpAdvancedView, *proxy)
 	case "HTTPS":
 		var (
 			httpsClassicView  = &r.httpsClassicView
 			httpsAdvancedView = &r.httpsAdvancedView
 		)
 		*httpsClassicView = append(*httpsClassicView, proxy.Proxy)
-		*httpsAdvancedView = append(*httpsAdvancedView, proxy)
+		*httpsAdvancedView = append(*httpsAdvancedView, *proxy)
 	case "SOCKS4":
 		var (
 			socks4ClassicView  = &r.socks4ClassicView
 			socks4AdvancedView = &r.socks4AdvancedView
 		)
 		*socks4ClassicView = append(*socks4ClassicView, proxy.Proxy)
-		*socks4AdvancedView = append(*socks4AdvancedView, proxy)
+		*socks4AdvancedView = append(*socks4AdvancedView, *proxy)
 	case "SOCKS5":
 		var (
 			socks5ClassicView  = &r.socks5ClassicView
 			socks5AdvancedView = &r.socks5AdvancedView
 		)
 		*socks5ClassicView = append(*socks5ClassicView, proxy.Proxy)
-		*socks5AdvancedView = append(*socks5AdvancedView, proxy)
+		*socks5AdvancedView = append(*socks5AdvancedView, *proxy)
 	}
 
 	updateProxyAll(proxy, &r.allClassicView, &r.allAdvancedView)
