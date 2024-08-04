@@ -79,17 +79,33 @@ func (r *ProxyRepository) Store(proxy entity.Proxy) {
 
 	switch proxy.Category {
 	case "HTTP":
-		r.httpClassicView = append(r.httpClassicView, proxy.Proxy)
-		r.httpAdvancedView = append(r.httpAdvancedView, proxy)
+		var (
+			httpClassicView  = &r.httpClassicView
+			httpAdvancedView = &r.httpAdvancedView
+		)
+		*httpClassicView = append(*httpClassicView, proxy.Proxy)
+		*httpAdvancedView = append(*httpAdvancedView, proxy)
 	case "HTTPS":
-		r.httpsClassicView = append(r.httpsClassicView, proxy.Proxy)
-		r.httpsAdvancedView = append(r.httpsAdvancedView, proxy)
+		var (
+			httpsClassicView  = &r.httpsClassicView
+			httpsAdvancedView = &r.httpsAdvancedView
+		)
+		*httpsClassicView = append(*httpsClassicView, proxy.Proxy)
+		*httpsAdvancedView = append(*httpsAdvancedView, proxy)
 	case "SOCKS4":
-		r.socks4ClassicView = append(r.socks4ClassicView, proxy.Proxy)
-		r.socks4AdvancedView = append(r.socks4AdvancedView, proxy)
+		var (
+			socks4ClassicView  = &r.socks4ClassicView
+			socks4AdvancedView = &r.socks4AdvancedView
+		)
+		*socks4ClassicView = append(*socks4ClassicView, proxy.Proxy)
+		*socks4AdvancedView = append(*socks4AdvancedView, proxy)
 	case "SOCKS5":
-		r.socks5ClassicView = append(r.socks5ClassicView, proxy.Proxy)
-		r.socks5AdvancedView = append(r.socks5AdvancedView, proxy)
+		var (
+			socks5ClassicView  = &r.socks5ClassicView
+			socks5AdvancedView = &r.socks5AdvancedView
+		)
+		*socks5ClassicView = append(*socks5ClassicView, proxy.Proxy)
+		*socks5AdvancedView = append(*socks5AdvancedView, proxy)
 	}
 
 	updateProxyAll(proxy, &r.allClassicView, &r.allAdvancedView)
