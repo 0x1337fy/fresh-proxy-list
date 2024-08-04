@@ -12,7 +12,6 @@ import (
 	"net/http"
 	"os"
 	"regexp"
-	"runtime"
 	"slices"
 	"strings"
 	"sync"
@@ -37,7 +36,6 @@ func main() {
 }
 
 func runApplication() error {
-	runtime.GOMAXPROCS(2)
 	loadEnv()
 
 	httpTestingSites := config.HTTPTestingSites
@@ -136,9 +134,7 @@ func run(runners Runners) error {
 		}
 	}
 	wg.Wait()
-	log.Printf("Time-consuming process: %v", time.Since(startTime))
 
-	startTime = time.Now()
 	fileOutputExtensions := config.FileOutputExtensions
 	fileUsecase := usecase.NewFileUsecase(runners.fileRepository, runners.proxyRepository, fileOutputExtensions)
 	fileUsecase.SaveFiles()

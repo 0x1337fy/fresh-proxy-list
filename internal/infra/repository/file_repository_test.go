@@ -514,8 +514,8 @@ func TestWriteCSV(t *testing.T) {
 			csvWriter utils.CSVWriterUtilInterface
 		}
 		args struct {
-			header *[]string
-			rows   *[][]string
+			header []string
+			rows   [][]string
 		}
 		wantErr error
 	}{
@@ -527,11 +527,11 @@ func TestWriteCSV(t *testing.T) {
 				csvWriter: &mockCSVWriterUtil{},
 			},
 			args: struct {
-				header *[]string
-				rows   *[][]string
+				header []string
+				rows   [][]string
 			}{
-				header: &[]string{column1, column2},
-				rows: &[][]string{
+				header: []string{column1, column2},
+				rows: [][]string{
 					{row1Col1, row1Col2},
 					{row2Col1, row2Col2},
 				},
@@ -548,11 +548,11 @@ func TestWriteCSV(t *testing.T) {
 				},
 			},
 			args: struct {
-				header *[]string
-				rows   *[][]string
+				header []string
+				rows   [][]string
 			}{
-				header: &[]string{column1, column2},
-				rows: &[][]string{
+				header: []string{column1, column2},
+				rows: [][]string{
 					{row1Col1, row1Col2},
 					{row2Col1, row2Col2},
 				},
@@ -569,11 +569,11 @@ func TestWriteCSV(t *testing.T) {
 				},
 			},
 			args: struct {
-				header *[]string
-				rows   *[][]string
+				header []string
+				rows   [][]string
 			}{
-				header: &[]string{column1, column2},
-				rows: &[][]string{
+				header: []string{column1, column2},
+				rows: [][]string{
 					{row1Col1, row1Col2},
 					{row2Col1, row2Col2},
 				},
@@ -590,11 +590,11 @@ func TestWriteCSV(t *testing.T) {
 				},
 			},
 			args: struct {
-				header *[]string
-				rows   *[][]string
+				header []string
+				rows   [][]string
 			}{
 				header: nil,
-				rows: &[][]string{
+				rows: [][]string{
 					{row1Col1, row1Col2},
 					{row2Col1, row2Col2},
 				},

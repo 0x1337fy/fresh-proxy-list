@@ -97,43 +97,41 @@ func (r *FileRepository) encodeCSV(w io.Writer, data interface{}) error {
 		for i, rowElem := range proxyData {
 			rows[i] = []string{rowElem}
 		}
-		return r.writeCSV(w, nil, &rows)
+		return r.writeCSV(w, nil, rows)
 	case []entity.Proxy:
 		header := []string{"Proxy", "IP", "Port", "TimeTaken", "CheckedAt"}
 		rows := make([][]string, len(proxyData))
 		for i, proxy := range proxyData {
 			rows[i] = []string{proxy.Proxy, proxy.IP, proxy.Port, fmt.Sprintf("%v", proxy.TimeTaken), proxy.CheckedAt}
 		}
-		return r.writeCSV(w, &header, &rows)
+		return r.writeCSV(w, header, rows)
 	case []entity.AdvancedProxy:
 		header := []string{"Proxy", "IP", "Port", "Categories", "TimeTaken", "CheckedAt"}
 		rows := make([][]string, len(proxyData))
 		for i, proxy := range proxyData {
 			rows[i] = []string{proxy.Proxy, proxy.IP, proxy.Port, strings.Join(proxy.Categories, ","), fmt.Sprintf("%v", proxy.TimeTaken), proxy.CheckedAt}
 		}
-		return r.writeCSV(w, &header, &rows)
+		return r.writeCSV(w, header, rows)
 	default:
 		return fmt.Errorf("invalid data type for CSV encoding")
 	}
 }
 
-func (r *FileRepository) writeCSV(w io.Writer, header *[]string, rows *[][]string) error {
+func (r *FileRepository) writeCSV(w io.Writer, header []string, rows [][]string) error {
 	if err := r.csvWriter.Open(w, nil); err != nil {
 		return fmt.Errorf("failed to open CSV writer: %w", err)
 	}
 	defer r.csvWriter.Close()
 
 	if header != nil {
-		if err := r.csvWriter.Write(*header); err != nil {
+		if err := r.csvWriter.Write(header); err != nil {
 			return fmt.Errorf("failed to write header: %w", err)
 		}
 	}
 
-	if rows != nil {
-		for _, row := range *rows {
-			if err := r.csvWriter.Write(row); err != nil {
-				return fmt.Errorf("failed to write row: %w", err)
-			}
+	for _, row := range rows {
+		if err := r.csvWriter.Write(row); err != nil {
+			return fmt.Errorf("failed to write row: %w", err)
 		}
 	}
 
@@ -175,7 +173,6 @@ func (r *FileRepository) encodeXML(w io.Writer, data interface{}) error {
 		err = xml.NewEncoder(w).Encode(view)
 	}
 
-	// err := xml.NewEncoder(w).Encode(data)
 	if err != nil {
 		return fmt.Errorf("error encoding XML: %v", err)
 	}
@@ -211,7 +208,6 @@ func (r *FileRepository) encodeYAML(w io.Writer, data interface{}) error {
 		err = yaml.NewEncoder(w).Encode(view)
 	}
 
-	// err := yaml.NewEncoder(w).Encode(data)
 	if err != nil {
 		return fmt.Errorf("error encoding YAML: %v", err)
 	}
