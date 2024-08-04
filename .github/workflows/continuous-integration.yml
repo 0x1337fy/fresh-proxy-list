@@ -59,7 +59,7 @@ jobs:
 
       - name: Check if ${{ vars.ARCHIVE_BRANCH_NAME }} branch exists
         run: |
-          git fetch origin main:refs/remotes/origin/main ${{ vars.ARCHIVE_BRANCH_NAME }}:refs/remotes/origin/${{ vars.ARCHIVE_BRANCH_NAME }}
+          git fetch origin --no-tags
           if git show-ref --verify --quiet refs/remotes/origin/${{ vars.ARCHIVE_BRANCH_NAME }}; then
             echo "Branch exists."
             echo "BRANCH_EXISTS=true" >> $GITHUB_ENV
@@ -81,7 +81,7 @@ jobs:
 
       - name: Pull changes form main branch
         run: |
-          git merge main
+          git pull origin main --no-edit
 
       - name: Set up Go
         uses: actions/setup-go@v5
