@@ -47,12 +47,6 @@ jobs:
       contents: write
 
     steps:
-      - name: Configure GIT
-        run: |
-          git config --global user.email $(git log --reverse --format='%ae' | head -n 1)
-          git config --global user.name $(git log --reverse --format='%an' | head -n 1)
-          git config --global pull.rebase false
-
       - name: Check if ${{ vars.ARCHIVE_BRANCH_NAME }} branch exists
         run: |
           if git show-ref --verify --quiet refs/remotes/origin/${{ vars.ARCHIVE_BRANCH_NAME }}; then
@@ -73,6 +67,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ vars.ARCHIVE_BRANCH_NAME }}
+
+      - name: Configure GIT
+        run: |
+          git config --global user.email $(git log --reverse --format='%ae' | head -n 1)
+          git config --global user.name $(git log --reverse --format='%an' | head -n 1)
+          git config --global pull.rebase false
 
       - name: Pull changes form main branch
         run: |
@@ -126,15 +126,15 @@ jobs:
       contents: write
 
     steps:
-      - name: Configure GIT
-        run: |
-          git config --global user.email $(git log --reverse --format='%ae' | head -n 1)
-          git config --global user.name $(git log --reverse --format='%an' | head -n 1)
-
       - name: Checkout ${{ vars.ARCHIVE_BRANCH_NAME }} branch
         uses: actions/checkout@v4
         with:
           ref: ${{ vars.ARCHIVE_BRANCH_NAME }}
+
+      - name: Configure GIT
+        run: |
+          git config --global user.email $(git log --reverse --format='%ae' | head -n 1)
+          git config --global user.name $(git log --reverse --format='%an' | head -n 1)
 
       - name: Get last commit time on ${{ vars.ARCHIVE_BRANCH_NAME }} branch
         run: |
