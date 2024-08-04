@@ -61,7 +61,7 @@ jobs:
       - name: Check if ${{ vars.ARCHIVE_BRANCH_NAME }} branch exists
         run: |
           if git ls-remote --heads origin ${{ vars.ARCHIVE_BRANCH_NAME }} > /dev/null; then
-            git fetch origin ${{ vars.ARCHIVE_BRANCH_NAME }}:${{ vars.ARCHIVE_BRANCH_NAME }}
+            git fetch origin ${{ vars.ARCHIVE_BRANCH_NAME }}:refs/remotes/origin/${{ vars.ARCHIVE_BRANCH_NAME }} --no-tags
             echo "Branch exists."
             echo "BRANCH_EXISTS=true" >> $GITHUB_ENV
           else
