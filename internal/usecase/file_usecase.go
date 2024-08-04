@@ -5,12 +5,14 @@ import (
 	"fresh-proxy-list/internal/infra/repository"
 	"path/filepath"
 	"strings"
+	"sync"
 )
 
 type fileUsecase struct {
 	fileRepository       repository.FileRepositoryInterface
 	proxyRepository      repository.ProxyRepositoryInterface
 	fileOutputExtensions []string
+	wg                   sync.WaitGroup
 }
 
 type FileUsecaseInterface interface {
@@ -22,26 +24,51 @@ func NewFileUsecase(fileRepository repository.FileRepositoryInterface, proxyRepo
 		fileRepository:       fileRepository,
 		proxyRepository:      proxyRepository,
 		fileOutputExtensions: fileOutputExtensions,
+		wg:                   sync.WaitGroup{},
 	}
 }
 
 func (uc *fileUsecase) SaveFiles() {
 	createFileForAllCategories := func(filename string, classic []string, advanced []entity.AdvancedProxy) {
+		uc.wg.Add((len(uc.fileOutputExtensions) * 2) + 1)
+
 		filename = strings.ToLower(filename)
 		for _, ext := range uc.fileOutputExtensions {
-			uc.fileRepository.SaveFile(filepath.Join("storage", "classic", filename+"."+ext), classic, ext)
-			uc.fileRepository.SaveFile(filepath.Join("storage", "advanced", filename+"."+ext), advanced, ext)
+			go func(ext string) {
+				defer uc.wg.Done()
+				uc.fileRepository.SaveFile(filepath.Join("storage", "classic", filename+"."+ext), classic, ext)
+			}(ext)
+			go func(ext string) {
+				defer uc.wg.Done()
+				uc.fileRepository.SaveFile(filepath.Join("storage", "advanced", filename+"."+ext), advanced, ext)
+			}(ext)
 		}
-		uc.fileRepository.SaveFile(filepath.Join("storage", "classic", filename+".txt"), classic, "txt")
+
+		go func() {
+			defer uc.wg.Done()
+			uc.fileRepository.SaveFile(filepath.Join("storage", "classic", filename+".txt"), classic, "txt")
+		}()
 	}
 
 	createFile := func(filename string, classic []string, advanced []entity.Proxy) {
+		uc.wg.Add((len(uc.fileOutputExtensions) * 2) + 1)
+
 		filename = strings.ToLower(filename)
 		for _, ext := range uc.fileOutputExtensions {
-			uc.fileRepository.SaveFile(filepath.Join("storage", "classic", filename+"."+ext), classic, ext)
-			uc.fileRepository.SaveFile(filepath.Join("storage", "advanced", filename+"."+ext), advanced, ext)
+			go func(ext string) {
+				defer uc.wg.Done()
+				uc.fileRepository.SaveFile(filepath.Join("storage", "classic", filename+"."+ext), classic, ext)
+			}(ext)
+			go func(ext string) {
+				defer uc.wg.Done()
+				uc.fileRepository.SaveFile(filepath.Join("storage", "advanced", filename+"."+ext), advanced, ext)
+			}(ext)
 		}
-		uc.fileRepository.SaveFile(filepath.Join("storage", "classic", filename+".txt"), classic, "txt")
+
+		go func() {
+			defer uc.wg.Done()
+			uc.fileRepository.SaveFile(filepath.Join("storage", "classic", filename+".txt"), classic, "txt")
+		}()
 	}
 
 	createFileForAllCategories("all", uc.proxyRepository.GetAllClassicView(), uc.proxyRepository.GetAllAdvancedView())
@@ -49,4 +76,5 @@ func (uc *fileUsecase) SaveFiles() {
 	createFile("https", uc.proxyRepository.GetHTTPSClassicView(), uc.proxyRepository.GetHTTPSAdvancedView())
 	createFile("socks4", uc.proxyRepository.GetSOCKS4ClassicView(), uc.proxyRepository.GetSOCKS4AdvancedView())
 	createFile("socks5", uc.proxyRepository.GetSOCKS5ClassicView(), uc.proxyRepository.GetSOCKS5AdvancedView())
+	uc.wg.Wait()
 }

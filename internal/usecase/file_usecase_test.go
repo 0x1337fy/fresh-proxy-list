@@ -4,6 +4,7 @@ import (
 	"fresh-proxy-list/internal/entity"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 )
 
@@ -70,8 +71,12 @@ func TestSaveFiles(t *testing.T) {
 		}
 	}
 
+	var mu sync.Mutex
 	calls := 0
 	mockFileRepo.SaveFileFunc = func(filename string, data interface{}, ext string) error {
+		mu.Lock()
+		defer mu.Unlock()
+
 		calls++
 		t.Logf("SaveFile called with filename: %s, extension: %s", filename, ext)
 		if !strings.HasPrefix(filename, filepath.Join(storageDir, classicDir)) &&
@@ -83,11 +88,10 @@ func TestSaveFiles(t *testing.T) {
 		}
 		return nil
 	}
-
 	usecase.SaveFiles()
 
 	// (5 categories * 2 extensions * 2 file types (classic, advanced)) + (5 all * 1 extension txt * 1 file type classic)
-	expectedCalls := (5 * 2 * 2) + (5 * 1 * 1)
+	expectedCalls := (5 * len(fileOutputExtensions) * 2) + (5 * 1 * 1)
 	if calls != expectedCalls {
 		t.Errorf("Expected %d calls, but got %d", expectedCalls, calls)
 	}

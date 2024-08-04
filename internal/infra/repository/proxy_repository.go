@@ -37,7 +37,9 @@ type ProxyRepositoryInterface interface {
 }
 
 func NewProxyRepository() ProxyRepositoryInterface {
-	return &ProxyRepository{}
+	return &ProxyRepository{
+		mu: sync.RWMutex{},
+	}
 }
 
 func (r *ProxyRepository) Store(proxy entity.Proxy) {

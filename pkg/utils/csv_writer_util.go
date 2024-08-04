@@ -3,11 +3,13 @@ package utils
 import (
 	"encoding/csv"
 	"io"
+	"sync"
 )
 
 type CSVWriterUtil struct {
 	writer *csv.Writer
 	closer io.Closer
+	mu     sync.RWMutex
 }
 
 type CSVWriterUtilInterface interface {
@@ -18,22 +20,33 @@ type CSVWriterUtilInterface interface {
 }
 
 func NewCSVWriter() CSVWriterUtilInterface {
-	return &CSVWriterUtil{}
+	return &CSVWriterUtil{
+		mu: sync.RWMutex{},
+	}
 }
 
 func (u *CSVWriterUtil) Open(w io.Writer, c io.Closer) error {
+	u.mu.Lock()
+	defer u.mu.Unlock()
+
 	u.writer = csv.NewWriter(w)
 	u.closer = c
 	return nil
 }
 
 func (u *CSVWriterUtil) Flush() {
+	u.mu.Lock()
+	defer u.mu.Unlock()
+
 	if u.writer != nil {
 		u.writer.Flush()
 	}
 }
 
 func (u *CSVWriterUtil) Write(record []string) error {
+	u.mu.Lock()
+	defer u.mu.Unlock()
+
 	if u.writer == nil {
 		return io.ErrClosedPipe
 	}
@@ -41,6 +54,9 @@ func (u *CSVWriterUtil) Write(record []string) error {
 }
 
 func (u *CSVWriterUtil) Close() error {
+	u.mu.Lock()
+	defer u.mu.Unlock()
+
 	if u.closer != nil {
 		if err := u.closer.Close(); err != nil {
 			return err
