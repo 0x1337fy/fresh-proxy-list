@@ -59,7 +59,7 @@ An automatically ⏰ updated list of free `HTTP`, `HTTPS`, `SOCKS4`, and `SOCKS5
 
 ## 📃 About
 
-This repository contains a free list of tested `HTTP/S` and `SOCKS4/5` proxies.
+This repository contains a free list of `HTTP/S` and `SOCKS4/5` proxies.
 
 - [x] 24/7 hourly updates (Committing since August 2024)
 - [x] Supported list formats: `TXT`, `CSV`, `JSON`, `XML`, and `YAML`
