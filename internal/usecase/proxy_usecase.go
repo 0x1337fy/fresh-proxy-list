@@ -105,6 +105,10 @@ func (uc *ProxyUsecase) IsSpecialIP(ip string) bool {
 		return true
 	}
 
+	if ipAddress.IsLoopback() || ipAddress.IsMulticast() || ipAddress.IsUnspecified() {
+		return true
+	}
+
 	for _, r := range uc.privateIPs {
 		if r.Contains(ipAddress) {
 			return true

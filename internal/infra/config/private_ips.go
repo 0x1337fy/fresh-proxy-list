@@ -5,18 +5,12 @@ import (
 )
 
 var PrivateIPs = []net.IPNet{
-	*ParseCIDR("10.0.0.0/8"),
-	*ParseCIDR("172.16.0.0/12"),
-	*ParseCIDR("192.168.0.0/16"),
-	*ParseCIDR("169.254.0.0/16"), // link-local
-	*ParseCIDR("240.0.0.0/4"),    // reserved for special use
-	*ParseCIDR("224.0.0.0/4"),    // multicast
-}
-
-func ParseCIDR(cidr string) *net.IPNet {
-	_, netIP, err := net.ParseCIDR(cidr)
-	if err != nil {
-		panic(err)
-	}
-	return netIP
+	{IP: net.IP{10, 0, 0, 0}, Mask: net.CIDRMask(8, 32)},     // Private range A
+	{IP: net.IP{172, 16, 0, 0}, Mask: net.CIDRMask(12, 32)},  // Private range B
+	{IP: net.IP{192, 168, 0, 0}, Mask: net.CIDRMask(16, 32)}, // Private range C
+	{IP: net.IP{169, 254, 0, 0}, Mask: net.CIDRMask(16, 32)}, // Link-local addresses
+	{IP: net.IP{224, 0, 0, 0}, Mask: net.CIDRMask(4, 32)},    // Multicast addresses
+	{IP: net.IP{240, 0, 0, 0}, Mask: net.CIDRMask(4, 32)},    // Reserved addresses
+	{IP: net.IP{127, 0, 0, 0}, Mask: net.CIDRMask(8, 32)},    // Loopback addresses
+	{IP: net.IP{192, 0, 2, 0}, Mask: net.CIDRMask(24, 32)},   // Documentation Network
 }
