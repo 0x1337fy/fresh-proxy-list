@@ -84,7 +84,7 @@ func createHTTPRequest(method, url string, body io.Reader) (*http.Request, error
 }
 
 func run(runners Runners) error {
-	start := time.Now()
+	startTime := time.Now()
 
 	sourceUsecase := usecase.NewSourceUsecase(runners.sourceRepository)
 	sources, err := sourceUsecase.LoadSources()
@@ -136,12 +136,14 @@ func run(runners Runners) error {
 		}
 	}
 	wg.Wait()
+	log.Printf("Time-consuming process: %v", time.Since(startTime))
 
+	startTime = time.Now()
 	fileOutputExtensions := config.FileOutputExtensions
 	fileUsecase := usecase.NewFileUsecase(runners.fileRepository, runners.proxyRepository, fileOutputExtensions)
 	fileUsecase.SaveFiles()
 
 	log.Printf("Number of proxies     : %v", len(proxyUsecase.GetAllAdvancedView()))
-	log.Printf("Time-consuming process: %v", time.Since(start))
+	log.Printf("Time-consuming process: %v", time.Since(startTime))
 	return nil
 }
