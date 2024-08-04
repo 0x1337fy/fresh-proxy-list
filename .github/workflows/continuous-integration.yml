@@ -81,7 +81,7 @@ jobs:
 
       - name: Pull changes form main branch
         run: |
-          git pull origin main --no-edit
+          git pull origin main --allow-unrelated-histories --no-edit
 
       - name: Set up Go
         uses: actions/setup-go@v5
