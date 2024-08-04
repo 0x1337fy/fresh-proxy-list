@@ -78,6 +78,7 @@ jobs:
       - name: Checkout ${{ vars.ARCHIVE_BRANCH_NAME }} branch
         uses: actions/checkout@v4
         with:
+          fetch-depth: 0
           ref: ${{ vars.ARCHIVE_BRANCH_NAME }}
 
       - name: Pull changes form main branch
