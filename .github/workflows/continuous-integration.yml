@@ -56,6 +56,7 @@ jobs:
         run: |
           git config --global user.email $(git log --reverse --format='%ae' | head -n 1)
           git config --global user.name $(git log --reverse --format='%an' | head -n 1)
+          git config --global pull.rebase false
 
       - name: Check if ${{ vars.ARCHIVE_BRANCH_NAME }} branch exists
         run: |
@@ -73,7 +74,6 @@ jobs:
         run: |
           git checkout -b ${{ vars.ARCHIVE_BRANCH_NAME }}
           git push origin ${{ vars.ARCHIVE_BRANCH_NAME }}
-          git config --global pull.rebase false
 
       - name: Checkout ${{ vars.ARCHIVE_BRANCH_NAME }} branch
         uses: actions/checkout@v4
