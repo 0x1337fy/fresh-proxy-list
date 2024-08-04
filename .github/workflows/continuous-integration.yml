@@ -60,10 +60,10 @@ jobs:
 
       - name: Check if ${{ vars.ARCHIVE_BRANCH_NAME }} branch exists
         run: |
+          git fetch origin --no-tags
           if git show-ref --verify --quiet refs/remotes/origin/${{ vars.ARCHIVE_BRANCH_NAME }}; then
             echo "Branch exists."
             echo "BRANCH_EXISTS=true" >> $GITHUB_ENV
-            git fetch origin ${{ vars.ARCHIVE_BRANCH_NAME }}:${{ vars.ARCHIVE_BRANCH_NAME }}
           else
             echo "Branch does not exist."
             echo "BRANCH_EXISTS=false" >> $GITHUB_ENV
