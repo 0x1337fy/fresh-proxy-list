@@ -3,7 +3,6 @@ package usecase
 import (
 	"errors"
 	"fresh-proxy-list/internal/entity"
-	"fresh-proxy-list/internal/infra/config"
 	"fresh-proxy-list/internal/infra/repository"
 	"fresh-proxy-list/internal/service"
 	"net"
@@ -36,7 +35,10 @@ var (
 	}
 	specialIPs = []string{"1.1.1.1"}
 	privateIPs = []net.IPNet{
-		*config.ParseCIDR("2.2.2.2/8"),
+		{IP: net.IP{2, 2, 2, 2}, Mask: net.CIDRMask(8, 32)},
+		{IP: net.IP{3, 3, 3, 3}, Mask: net.CIDRMask(12, 32)},
+		{IP: net.IP{4, 4, 4, 4}, Mask: net.CIDRMask(16, 32)},
+		{IP: net.IP{5, 5, 5, 5}, Mask: net.CIDRMask(16, 32)},
 	}
 )
 
@@ -359,7 +361,7 @@ func TestIsSpecialIP(t *testing.T) {
 			args: args{
 				ip: "::1",
 			},
-			want: false,
+			want: true,
 		},
 		{
 			name: "Test 2.2.2.2",
@@ -388,6 +390,20 @@ func TestIsSpecialIP(t *testing.T) {
 				ip: "192.168.1",
 			},
 			want: true,
+		},
+		{
+			name: "Test 13.37.0.1",
+			fields: struct {
+				specialIPs []string
+				privateIPs []net.IPNet
+			}{
+				specialIPs: specialIPs,
+				privateIPs: privateIPs,
+			},
+			args: args{
+				ip: "13.37.0.1",
+			},
+			want: false,
 		},
 	}
 
