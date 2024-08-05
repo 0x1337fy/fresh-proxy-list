@@ -2,6 +2,7 @@ package repository
 
 import (
 	"bytes"
+	"encoding/csv"
 	"errors"
 	"fmt"
 	"fresh-proxy-list/pkg/utils"
@@ -41,28 +42,22 @@ func (m *mockWriter) Close() error {
 }
 
 type mockCSVWriterUtil struct {
-	openErr  error
 	flushErr error
 	writeErr error
-	closeErr error
 }
 
-func (m *mockCSVWriterUtil) Open(w io.Writer, c io.Closer) error {
-	return m.openErr
+func (m *mockCSVWriterUtil) Init(w io.Writer) *csv.Writer {
+	return csv.NewWriter(w)
 }
 
-func (m *mockCSVWriterUtil) Flush() {
+func (m *mockCSVWriterUtil) Flush(csvWriter *csv.Writer) {
 	if m.flushErr != nil {
 		return
 	}
 }
 
-func (m *mockCSVWriterUtil) Write(record []string) error {
+func (m *mockCSVWriterUtil) Write(csvWriter *csv.Writer, record []string) error {
 	return m.writeErr
-}
-
-func (m *mockCSVWriterUtil) Close() error {
-	return m.closeErr
 }
 
 func TestNewFileRepository(t *testing.T) {
@@ -537,27 +532,6 @@ func TestWriteCSV(t *testing.T) {
 				},
 			},
 			wantErr: nil,
-		},
-		{
-			name: "ErrorOpeningFile",
-			fields: struct {
-				csvWriter utils.CSVWriterUtilInterface
-			}{
-				csvWriter: &mockCSVWriterUtil{
-					openErr: errors.New(openFileError),
-				},
-			},
-			args: struct {
-				header []string
-				rows   [][]string
-			}{
-				header: []string{column1, column2},
-				rows: [][]string{
-					{row1Col1, row1Col2},
-					{row2Col1, row2Col2},
-				},
-			},
-			wantErr: fmt.Errorf("failed to open CSV writer: %w", errors.New(openFileError)),
 		},
 		{
 			name: "ErrorWritingHeader",

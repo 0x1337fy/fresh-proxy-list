@@ -118,24 +118,21 @@ func (r *FileRepository) encodeCSV(w io.Writer, data interface{}) error {
 }
 
 func (r *FileRepository) writeCSV(w io.Writer, header []string, rows [][]string) error {
-	if err := r.csvWriter.Open(w, nil); err != nil {
-		return fmt.Errorf("failed to open CSV writer: %w", err)
-	}
-	defer r.csvWriter.Close()
+	csvWriter := r.csvWriter.Init(w)
+	defer r.csvWriter.Flush(csvWriter)
 
 	if header != nil {
-		if err := r.csvWriter.Write(header); err != nil {
+		if err := r.csvWriter.Write(csvWriter, header); err != nil {
 			return fmt.Errorf("failed to write header: %w", err)
 		}
 	}
 
 	for _, row := range rows {
-		if err := r.csvWriter.Write(row); err != nil {
+		if err := r.csvWriter.Write(csvWriter, row); err != nil {
 			return fmt.Errorf("failed to write row: %w", err)
 		}
 	}
 
-	r.csvWriter.Flush()
 	return nil
 }
 

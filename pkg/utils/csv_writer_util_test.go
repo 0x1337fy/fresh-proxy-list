@@ -3,15 +3,13 @@ package utils
 import (
 	"bytes"
 	"encoding/csv"
-	"errors"
 	"io"
+	"reflect"
 	"testing"
 )
 
 const (
-	errClosedPipeMessage = "io: read/write on closed pipe"
-	flushErrorMessage    = "flush error"
-	closeErrorMessage    = "close error"
+	writerBufferSize = 1024
 )
 
 type MockCloser struct {
@@ -24,12 +22,12 @@ func (m *MockCloser) Close() error {
 
 func TestNewCSVWriter(t *testing.T) {
 	tests := []struct {
-		name     string
-		wantType interface{}
+		name string
+		want interface{}
 	}{
 		{
-			name:     "NewCSVWriter returns *CSVWriter",
-			wantType: &CSVWriterUtil{},
+			name: "NewCSVWriter returns *CSVWriter",
+			want: &CSVWriterUtil{},
 		},
 	}
 
@@ -37,187 +35,108 @@ func TestNewCSVWriter(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got := NewCSVWriter()
 			if _, ok := got.(*CSVWriterUtil); !ok {
-				t.Errorf("NewCSVWriter() = %T, want %T", got, tt.wantType)
+				t.Errorf("NewCSVWriter() = %T, want %T", got, tt.want)
 			}
 		})
 	}
 }
 
-func TestCSVWriterOpen(t *testing.T) {
+func TestInit(t *testing.T) {
 	tests := []struct {
-		name   string
-		setup  func() *CSVWriterUtil
-		fields struct {
-			writer *csv.Writer
-			closer io.Closer
-		}
+		name string
 		args struct {
-			w io.Writer
-			c io.Closer
+			writer io.Writer
 		}
-		wantErr error
+		want *csv.Writer
 	}{
 		{
-			name: "Open with writer and closer",
+			name: "TestInit",
+			args: struct {
+				writer io.Writer
+			}{
+				writer: bytes.NewBuffer(make([]byte, writerBufferSize)),
+			},
+			want: csv.NewWriter(bytes.NewBuffer(make([]byte, writerBufferSize))),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			u := NewCSVWriter()
+			got := u.Init(tt.args.writer)
+			if reflect.TypeOf(got) != reflect.TypeOf(tt.want) {
+				t.Errorf("Init() = %v, want %v", reflect.TypeOf(got), reflect.TypeOf(tt.want))
+			}
+		})
+	}
+}
+
+func TestFlush(t *testing.T) {
+	tests := []struct {
+		name  string
+		setup func() *CSVWriterUtil
+		args  struct {
+			csvWriter *csv.Writer
+		}
+	}{
+		{
+			name: "TestFlush",
 			setup: func() *CSVWriterUtil {
-				return &CSVWriterUtil{}
+				return NewCSVWriter().(*CSVWriterUtil)
 			},
 			args: struct {
-				w io.Writer
-				c io.Closer
+				csvWriter *csv.Writer
 			}{
-				w: &bytes.Buffer{},
-				c: &MockCloser{},
+				csvWriter: csv.NewWriter(bytes.NewBuffer(make([]byte, writerBufferSize))),
 			},
-			wantErr: nil,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			uc := tt.setup()
-			err := uc.Open(tt.args.w, tt.args.c)
-			if err != nil && tt.wantErr != nil {
-				if err.Error() != tt.wantErr.Error() {
-					t.Errorf("Open() error = %v, want %v", err, tt.wantErr)
-				}
-			} else if (err == nil && tt.wantErr != nil) || (err != nil && tt.wantErr == nil) {
-				t.Errorf("Open() error = %v, want %v", err, tt.wantErr)
-			}
+			u := tt.setup()
+			u.Flush(tt.args.csvWriter)
 		})
 	}
 }
 
-func TestCSVWriterFlush(t *testing.T) {
+func TestWrite(t *testing.T) {
 	tests := []struct {
-		name   string
-		setup  func() *CSVWriterUtil
-		fields struct {
-			writer *csv.Writer
-		}
-		wantErr error
-	}{
-		{
-			name: "Flush writer",
-			setup: func() *CSVWriterUtil {
-				buffer := &bytes.Buffer{}
-				writer := csv.NewWriter(buffer)
-				return &CSVWriterUtil{
-					writer: writer,
-				}
-			},
-			wantErr: nil,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			uc := tt.setup()
-			uc.Flush()
-		})
-	}
-}
-
-func TestCSVWriterWrite(t *testing.T) {
-	tests := []struct {
-		name   string
-		setup  func() *CSVWriterUtil
-		fields struct {
-			writer *csv.Writer
-		}
-		args struct {
+		name  string
+		setup func() *CSVWriterUtil
+		args  struct {
+			writer io.Writer
 			record []string
 		}
-		wantErr error
+		wantError error
 	}{
 		{
-			name: "Write record to writer",
+			name: "TestWrite",
 			setup: func() *CSVWriterUtil {
-				buffer := &bytes.Buffer{}
-				writer := csv.NewWriter(buffer)
-				return &CSVWriterUtil{
-					writer: writer,
-				}
+				return NewCSVWriter().(*CSVWriterUtil)
 			},
 			args: struct {
+				writer io.Writer
 				record []string
 			}{
-				record: []string{"field1", "field2"},
+				writer: &bytes.Buffer{},
+				record: []string{"a", "b", "c"},
 			},
-			wantErr: nil,
-		},
-		{
-			name: "Write to closed pipe",
-			setup: func() *CSVWriterUtil {
-				return &CSVWriterUtil{
-					writer: nil,
-				}
-			},
-			args: struct {
-				record []string
-			}{
-				record: []string{"field1", "field2"},
-			},
-			wantErr: errors.New(errClosedPipeMessage),
+			wantError: nil,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			uc := tt.setup()
-			err := uc.Write(tt.args.record)
-			if err != nil && tt.wantErr != nil {
-				if err.Error() != tt.wantErr.Error() {
-					t.Errorf("Write() error = %v, want %v", err, tt.wantErr)
+			u := tt.setup()
+			csvWriter := u.Init(tt.args.writer)
+			err := u.Write(csvWriter, tt.args.record)
+			if err != nil && tt.wantError != nil {
+				if err.Error() != tt.wantError.Error() {
+					t.Errorf("Write() error = %v, want %v", err, tt.wantError)
 				}
-			} else if (err == nil && tt.wantErr != nil) || (err != nil && tt.wantErr == nil) {
-				t.Errorf("Write() error = %v, want %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
-func TestCSVWriterClose(t *testing.T) {
-	tests := []struct {
-		name   string
-		setup  func() *CSVWriterUtil
-		fields struct {
-			closer io.Closer
-		}
-		wantErr error
-	}{
-		{
-			name: "Close with no error",
-			setup: func() *CSVWriterUtil {
-				return &CSVWriterUtil{
-					closer: &MockCloser{},
-				}
-			},
-			wantErr: nil,
-		},
-		{
-			name: "Close with error",
-			setup: func() *CSVWriterUtil {
-				return &CSVWriterUtil{
-					closer: &MockCloser{
-						closerError: errors.New(closeErrorMessage),
-					},
-				}
-			},
-			wantErr: errors.New(closeErrorMessage),
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			uc := tt.setup()
-			err := uc.Close()
-			if err != nil && tt.wantErr != nil {
-				if err.Error() != tt.wantErr.Error() {
-					t.Errorf("Close() error = %v, want %v", err, tt.wantErr)
-				}
-			} else if (err == nil && tt.wantErr != nil) || (err != nil && tt.wantErr == nil) {
-				t.Errorf("Close() error = %v, want %v", err, tt.wantErr)
+			} else if (err == nil && tt.wantError != nil) || (err != nil && tt.wantError == nil) {
+				t.Errorf("Write() error = %v, want %v", err, tt.wantError)
 			}
 		})
 	}
