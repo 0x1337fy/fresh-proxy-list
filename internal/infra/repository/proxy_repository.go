@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"cmp"
 	"fresh-proxy-list/internal/entity"
 	"slices"
 	"sort"
@@ -45,19 +46,10 @@ func (r *ProxyRepository) Store(proxy *entity.Proxy) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	findIndex := func(slice *[]entity.AdvancedProxy, target *entity.AdvancedProxy) (int, bool) {
-		index := sort.Search(len(*slice), func(i int) bool {
-			return (*slice)[i].Proxy >= target.Proxy
-		})
-		if index < len(*slice) && (*slice)[index].Proxy == target.Proxy {
-			return index, true
-		} else {
-			return index, false
-		}
-	}
-
 	updateProxyAll := func(proxy *entity.Proxy, classicList *[]string, advancedList *[]entity.AdvancedProxy) {
-		n, found := findIndex(advancedList, &entity.AdvancedProxy{Proxy: proxy.Proxy})
+		n, found := slices.BinarySearchFunc(*advancedList, entity.AdvancedProxy{Proxy: proxy.Proxy}, func(a, b entity.AdvancedProxy) int {
+			return cmp.Compare(a.Proxy, b.Proxy)
+		})
 		if found {
 			if proxy.Category == "HTTP" && proxy.TimeTaken > 0 {
 				(*advancedList)[n].TimeTaken = proxy.TimeTaken
