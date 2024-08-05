@@ -124,7 +124,7 @@ func run(runners Runners) error {
 					innerWG.Add(1)
 					go func(source entity.Source, proxy string) {
 						defer innerWG.Done()
-						_ = proxyUsecase.ProcessProxy(source, proxy)
+						proxyUsecase.ProcessProxy(source.Category, proxy, source.IsChecked)
 					}(source, proxy)
 				}
 				innerWG.Wait()

@@ -22,7 +22,7 @@ type ProxyUsecase struct {
 }
 
 type ProxyUsecaseInterface interface {
-	ProcessProxy(source entity.Source, proxy string) error
+	ProcessProxy(category string, proxy string, isChecked bool) (*entity.Proxy, error)
 	IsSpecialIP(ip string) bool
 	GetAllAdvancedView() []entity.AdvancedProxy
 }
@@ -42,59 +42,59 @@ func NewProxyUsecase(
 	}
 }
 
-func (uc *ProxyUsecase) ProcessProxy(source entity.Source, proxy string) error {
+func (uc *ProxyUsecase) ProcessProxy(category string, proxy string, isChecked bool) (*entity.Proxy, error) {
 	proxy = strings.TrimSpace(strings.ReplaceAll(strings.ReplaceAll(proxy, "\r", ""), "\n", ""))
 	if proxy == "" {
-		return fmt.Errorf("proxy not found")
+		return nil, fmt.Errorf("proxy not found")
 	}
 
 	proxyParts := strings.Split(proxy, ":")
 	if len(proxyParts) != 2 {
-		return fmt.Errorf("proxy format incorrect")
+		return nil, fmt.Errorf("proxy format incorrect")
 	}
 
 	pattern := `^((25[0-5]|2[0-4][0-9]|[0-1]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[0-1]?[0-9][0-9]?)\:(0|[1-9][0-9]{0,4})$`
 	re := regexp.MustCompile(pattern)
 	if !re.MatchString(proxy) {
-		return fmt.Errorf("proxy format not match")
+		return nil, fmt.Errorf("proxy format not match")
 	}
 
 	if uc.IsSpecialIP(proxyParts[0]) {
-		return fmt.Errorf("proxy belongs to special ip")
+		return nil, fmt.Errorf("proxy belongs to special ip")
 	}
 
 	port, err := strconv.Atoi(proxyParts[1])
 	if err != nil || port < 0 || port > 65535 {
-		return fmt.Errorf("proxy port format incorrect")
+		return nil, fmt.Errorf("proxy port format incorrect")
 	}
 
-	_, loaded := uc.proxyMap.LoadOrStore(source.Category+"_"+proxy, true)
+	_, loaded := uc.proxyMap.LoadOrStore(category+"_"+proxy, true)
 	if loaded {
-		return fmt.Errorf("proxy has been processed")
+		return nil, fmt.Errorf("proxy has been processed")
 	}
 
 	var (
 		data               *entity.Proxy
 		proxyIP, proxyPort = proxyParts[0], proxyParts[1]
 	)
-	if source.IsChecked {
-		data, err = uc.proxyService.Check(source.Category, proxyIP, proxyPort)
+	if isChecked {
+		data, err = uc.proxyService.Check(category, proxyIP, proxyPort)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	} else {
 		data = &entity.Proxy{
 			Proxy:     proxy,
 			IP:        proxyIP,
 			Port:      proxyPort,
-			Category:  source.Category,
+			Category:  category,
 			TimeTaken: 0,
 			CheckedAt: "",
 		}
 	}
 	uc.proxyRepository.Store(data)
 
-	return nil
+	return data, nil
 }
 
 func (uc *ProxyUsecase) IsSpecialIP(ip string) bool {
