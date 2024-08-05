@@ -94,9 +94,11 @@ func TestProcessProxy(t *testing.T) {
 			proxyService    service.ProxyServiceInterface
 		}
 		args struct {
-			source entity.Source
-			proxy  string
+			category  string
+			proxy     string
+			isChecked bool
 		}
+		want    *entity.Proxy
 		wantErr error
 	}{
 		{
@@ -109,15 +111,15 @@ func TestProcessProxy(t *testing.T) {
 				proxyService:    &mockProxyService{},
 			},
 			args: struct {
-				source entity.Source
-				proxy  string
+				category  string
+				proxy     string
+				isChecked bool
 			}{
-				source: entity.Source{
-					Category:  testHTTPCategory,
-					IsChecked: false,
-				},
-				proxy: "   ",
+				category:  testHTTPCategory,
+				proxy:     "   ",
+				isChecked: false,
 			},
+			want:    nil,
 			wantErr: errors.New("proxy not found"),
 		},
 		{
@@ -130,15 +132,15 @@ func TestProcessProxy(t *testing.T) {
 				proxyService:    &mockProxyService{},
 			},
 			args: struct {
-				source entity.Source
-				proxy  string
+				category  string
+				proxy     string
+				isChecked bool
 			}{
-				source: entity.Source{
-					Category:  testHTTPCategory,
-					IsChecked: false,
-				},
-				proxy: "invalid-proxy",
+				category:  testHTTPCategory,
+				proxy:     "invalid-proxy",
+				isChecked: false,
 			},
+			want:    nil,
 			wantErr: errors.New("proxy format incorrect"),
 		},
 		{
@@ -151,15 +153,15 @@ func TestProcessProxy(t *testing.T) {
 				proxyService:    &mockProxyService{},
 			},
 			args: struct {
-				source entity.Source
-				proxy  string
+				category  string
+				proxy     string
+				isChecked bool
 			}{
-				source: entity.Source{
-					Category:  testHTTPCategory,
-					IsChecked: false,
-				},
-				proxy: "invalid-proxy:1337",
+				category:  testHTTPCategory,
+				proxy:     "invalid-proxy:1337",
+				isChecked: false,
 			},
+			want:    nil,
 			wantErr: errors.New("proxy format not match"),
 		},
 		{
@@ -172,15 +174,15 @@ func TestProcessProxy(t *testing.T) {
 				proxyService:    &mockProxyService{},
 			},
 			args: struct {
-				source entity.Source
-				proxy  string
+				category  string
+				proxy     string
+				isChecked bool
 			}{
-				source: entity.Source{
-					Category:  testHTTPCategory,
-					IsChecked: false,
-				},
-				proxy: "1.1.1.1:1337",
+				category:  testHTTPCategory,
+				proxy:     "1.1.1.1:1337",
+				isChecked: false,
 			},
+			want:    nil,
 			wantErr: errors.New("proxy belongs to special ip"),
 		},
 		{
@@ -193,15 +195,15 @@ func TestProcessProxy(t *testing.T) {
 				proxyService:    &mockProxyService{},
 			},
 			args: struct {
-				source entity.Source
-				proxy  string
+				category  string
+				proxy     string
+				isChecked bool
 			}{
-				source: entity.Source{
-					Category:  testHTTPCategory,
-					IsChecked: false,
-				},
-				proxy: testIP + ":65540",
+				category:  testHTTPCategory,
+				proxy:     testIP + ":65540",
+				isChecked: false,
 			},
+			want:    nil,
 			wantErr: errors.New("proxy port format incorrect"),
 		},
 		{
@@ -213,15 +215,15 @@ func TestProcessProxy(t *testing.T) {
 				proxyRepository: &mockProxyRepository{},
 			},
 			args: struct {
-				source entity.Source
-				proxy  string
+				category  string
+				proxy     string
+				isChecked bool
 			}{
-				source: entity.Source{
-					Category:  testHTTPCategory,
-					IsChecked: false,
-				},
-				proxy: testProxy,
+				category:  testHTTPCategory,
+				proxy:     testProxy,
+				isChecked: false,
 			},
+			want:    nil,
 			wantErr: errors.New("proxy has been processed"),
 		},
 		{
@@ -231,17 +233,28 @@ func TestProcessProxy(t *testing.T) {
 				proxyService    service.ProxyServiceInterface
 			}{
 				proxyRepository: &mockProxyRepository{},
-				proxyService:    &mockProxyService{},
+				proxyService: &mockProxyService{
+					CheckFunc: func(category string, ip string, port string) (*entity.Proxy, error) {
+						return &mockProxy, nil
+					},
+				},
 			},
 			args: struct {
-				source entity.Source
-				proxy  string
+				category  string
+				proxy     string
+				isChecked bool
 			}{
-				source: entity.Source{
-					Category:  mockProxy.Category,
-					IsChecked: false,
-				},
-				proxy: mockProxy.Proxy,
+				category:  mockProxy.Category,
+				proxy:     mockProxy.Proxy,
+				isChecked: true,
+			},
+			want: &entity.Proxy{
+				Category:  mockProxy.Category,
+				Proxy:     mockProxy.Proxy,
+				IP:        mockProxy.IP,
+				Port:      mockProxy.Port,
+				TimeTaken: mockProxy.TimeTaken,
+				CheckedAt: mockProxy.CheckedAt,
 			},
 			wantErr: nil,
 		},
@@ -259,15 +272,15 @@ func TestProcessProxy(t *testing.T) {
 				},
 			},
 			args: struct {
-				source entity.Source
-				proxy  string
+				category  string
+				proxy     string
+				isChecked bool
 			}{
-				source: entity.Source{
-					Category:  mockProxy.Category,
-					IsChecked: true,
-				},
-				proxy: mockProxy.Proxy,
+				category:  mockProxy.Category,
+				proxy:     mockProxy.Proxy,
+				isChecked: true,
 			},
+			want:    nil,
 			wantErr: errors.New("proxy not valid"),
 		},
 		{
@@ -284,14 +297,21 @@ func TestProcessProxy(t *testing.T) {
 				},
 			},
 			args: struct {
-				source entity.Source
-				proxy  string
+				category  string
+				proxy     string
+				isChecked bool
 			}{
-				source: entity.Source{
-					Category:  mockProxy.Category,
-					IsChecked: false,
-				},
-				proxy: mockProxy.Proxy,
+				category:  mockProxy.Category,
+				proxy:     mockProxy.Proxy,
+				isChecked: false,
+			},
+			want: &entity.Proxy{
+				Category:  mockProxy.Category,
+				Proxy:     mockProxy.Proxy,
+				IP:        mockProxy.IP,
+				Port:      mockProxy.Port,
+				TimeTaken: 0,
+				CheckedAt: "",
 			},
 			wantErr: nil,
 		},
@@ -308,12 +328,16 @@ func TestProcessProxy(t *testing.T) {
 			}
 
 			if tt.name == "Proxy Has Been Processed" {
-				uc.proxyMap.Store(tt.args.source.Category+"_"+tt.args.proxy, true)
+				uc.proxyMap.Store(tt.args.category+"_"+tt.args.proxy, true)
 			}
 
-			err := uc.ProcessProxy(tt.args.source, tt.args.proxy)
+			got, err := uc.ProcessProxy(tt.args.category, tt.args.proxy, tt.args.isChecked)
 			if err != nil && err.Error() != tt.wantErr.Error() {
 				t.Errorf("ProcessProxy() error = %v, want %v", err, tt.wantErr)
+			}
+
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("ProcessProxy() = %v, want %v", got, tt.want)
 			}
 		})
 	}
