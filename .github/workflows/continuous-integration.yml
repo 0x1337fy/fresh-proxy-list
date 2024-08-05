@@ -61,7 +61,7 @@ jobs:
       - name: Check if ${{ vars.ARCHIVE_BRANCH_NAME }} branch exists
         run: |
           if git ls-remote --heads origin ${{ vars.ARCHIVE_BRANCH_NAME }} > /dev/null; then
-            git fetch origin ${{ vars.ARCHIVE_BRANCH_NAME }}:refs/remotes/origin/${{ vars.ARCHIVE_BRANCH_NAME }} --no-tags
+            git fetch origin ${{ vars.ARCHIVE_BRANCH_NAME }}:refs/remotes/origin/${{ vars.ARCHIVE_BRANCH_NAME }} --depth=1 --no-tags
             echo "Branch exists."
             echo "BRANCH_EXISTS=true" >> $GITHUB_ENV
           else
@@ -78,7 +78,7 @@ jobs:
       - name: Checkout ${{ vars.ARCHIVE_BRANCH_NAME }} branch
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1
           ref: ${{ vars.ARCHIVE_BRANCH_NAME }}
 
       - name: Pull changes form main branch
