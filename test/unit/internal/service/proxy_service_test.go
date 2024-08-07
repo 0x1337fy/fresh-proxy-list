@@ -1,9 +1,10 @@
-package service
+package service_test
 
 import (
 	"errors"
 	"fmt"
 	"fresh-proxy-list/internal/entity"
+	"fresh-proxy-list/internal/service"
 	"fresh-proxy-list/pkg/utils"
 	"io"
 	"net/http"
@@ -15,17 +16,20 @@ import (
 )
 
 var (
-	testIP             = "192.168.1.1"
-	testPort           = "8080"
-	testProxy          = "192.168.1.1:8080"
-	testHTTPCategory   = "HTTP"
-	testHTTPSCategory  = "HTTPS"
-	testSOCKS5Category = "SOCKS5"
-	proxyService       = &ProxyService{
-		httpTestingSites:  []string{"http://test1.com", "http://test2.com"},
-		httpsTestingSites: []string{"http://secure1.com", "http://secure2.com"},
-		userAgents:        []string{"Mozilla", "Chrome", "Safari"},
-	}
+	expectedButGotMessage             = "Expected %v = %v, but got = %v"
+	expectedErrorButGotMessage        = "Expected %v error = %v, but got = %v"
+	expectedNonEmptyMessage           = "Expected non-empty %v from %v"
+	expectedReturnNonNil              = "Expected %v to return a non-nil %v"
+	expectedTypeAssertionErrorMessage = "Expected type assertion error, but got = %v"
+	testIP                            = "13.37.0.1"
+	testPort                          = "8080"
+	testProxy                         = testIP + ":" + testPort
+	testHTTPCategory                  = "HTTP"
+	testHTTPSCategory                 = "HTTPS"
+	testSOCKS4Category                = "SOCKS4"
+	testHTTPTestingSites              = []string{"http://test1.com", "http://test2.com"}
+	testHTTPSTestingSites             = []string{"https://secure1.com", "https://secure2.com"}
+	testUserAgents                    = []string{"Mozilla", "Chrome", "Safari"}
 )
 
 type mockURLParserUtil struct {
@@ -68,32 +72,26 @@ func (m *mockFetcherUtil) NewRequest(method string, url string, body io.Reader) 
 }
 
 func TestNewProxyService(t *testing.T) {
-	mockFetcher := &mockFetcherUtil{}
-	mockURLParser := &mockURLParserUtil{}
-	httpTestingSites := proxyService.httpTestingSites
-	httpsTestingSites := proxyService.httpsTestingSites
-	userAgents := proxyService.userAgents
-	service := NewProxyService(mockFetcher, mockURLParser, httpTestingSites, httpsTestingSites, userAgents)
-
-	if _, ok := service.(*ProxyService); !ok {
-		t.Errorf("NewProxyService() did not return a *ProxyService")
+	proxyService := service.NewProxyService(&mockFetcherUtil{}, &mockURLParserUtil{}, testHTTPTestingSites, testHTTPSTestingSites, testUserAgents)
+	if proxyService == nil {
+		t.Errorf(expectedReturnNonNil, "NewProxyService", "ProxyServiceInterface")
 	}
 
-	pu, ok := service.(*ProxyService)
+	s, ok := proxyService.(*service.ProxyService)
 	if !ok {
-		t.Fatalf("Failed to cast to *ProxyService")
+		t.Errorf(expectedTypeAssertionErrorMessage, "*service.ProxyService")
 	}
 
-	if !reflect.DeepEqual(pu.httpTestingSites, proxyService.httpTestingSites) {
-		t.Errorf("Expected httpTestingSites %v, but got %v", proxyService.httpTestingSites, pu.httpTestingSites)
+	if !reflect.DeepEqual(s.HTTPTestingSites, testHTTPTestingSites) {
+		t.Errorf(expectedButGotMessage, "HTTPTestingSites", testHTTPTestingSites, s.HTTPTestingSites)
 	}
 
-	if !reflect.DeepEqual(pu.httpsTestingSites, proxyService.httpsTestingSites) {
-		t.Errorf("Expected httpsTestingSites %v, but got %v", proxyService.httpsTestingSites, pu.httpsTestingSites)
+	if !reflect.DeepEqual(s.HTTPSTestingSites, testHTTPSTestingSites) {
+		t.Errorf(expectedButGotMessage, "HTTPSTestingSites", testHTTPSTestingSites, s.HTTPSTestingSites)
 	}
 
-	if !reflect.DeepEqual(pu.userAgents, proxyService.userAgents) {
-		t.Errorf("Expected userAgents %v, but got %v", proxyService.userAgents, pu.userAgents)
+	if !reflect.DeepEqual(s.UserAgents, testUserAgents) {
+		t.Errorf(expectedButGotMessage, "UserAgents", testUserAgents, s.UserAgents)
 	}
 }
 
@@ -110,14 +108,14 @@ func TestCheck(t *testing.T) {
 	}
 
 	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		want    *entity.Proxy
-		wantErr error
+		name      string
+		fields    fields
+		args      args
+		want      *entity.Proxy
+		wantError error
 	}{
 		{
-			name: "Test valid",
+			name: "TestValid",
 			fields: fields{
 				fetcherUtil:   &mockFetcherUtil{},
 				urlParserUtil: &mockURLParserUtil{},
@@ -135,10 +133,10 @@ func TestCheck(t *testing.T) {
 				TimeTaken: 123.45,
 				CheckedAt: time.Now().Format(time.RFC3339),
 			},
-			wantErr: nil,
+			wantError: nil,
 		},
 		{
-			name: "Test error parse url",
+			name: "TestErrorParseURL",
 			fields: fields{
 				fetcherUtil: &mockFetcherUtil{},
 				urlParserUtil: &mockURLParserUtil{
@@ -152,11 +150,11 @@ func TestCheck(t *testing.T) {
 				ip:       testIP,
 				port:     testPort,
 			},
-			want:    nil,
-			wantErr: errors.New("error parsing proxy URL: parse error"),
+			want:      nil,
+			wantError: errors.New("error parsing proxy URL: parse error"),
 		},
 		{
-			name: "Test creating request",
+			name: "TestCreatingRequest",
 			fields: fields{
 				fetcherUtil: &mockFetcherUtil{
 					NewRequestFunc: func(method, url string, body io.Reader) (*http.Request, error) {
@@ -165,26 +163,26 @@ func TestCheck(t *testing.T) {
 				},
 			},
 			args: args{
-				category: testSOCKS5Category,
+				category: testSOCKS4Category,
 				ip:       testIP,
 				port:     testPort,
 			},
-			want:    nil,
-			wantErr: errors.New("error creating request: error creating request"),
+			want:      nil,
+			wantError: errors.New("error creating request: error creating request"),
 		},
 		{
-			name:   "Test unsupported proxy category",
+			name:   "TestUnsupportedProxyCategory",
 			fields: fields{},
 			args: args{
 				category: "FTP",
 				ip:       testIP,
 				port:     testPort,
 			},
-			want:    nil,
-			wantErr: errors.New("proxy category FTP not supported"),
+			want:      nil,
+			wantError: errors.New("proxy category FTP not supported"),
 		},
 		{
-			name: "Test request error",
+			name: "TestRequestError",
 			fields: fields{
 				fetcherUtil: &mockFetcherUtil{
 					DoFunc: func(client *http.Client, req *http.Request) (*http.Response, error) {
@@ -198,11 +196,11 @@ func TestCheck(t *testing.T) {
 				ip:       testIP,
 				port:     testPort,
 			},
-			want:    nil,
-			wantErr: errors.New("request error: network error"),
+			want:      nil,
+			wantError: errors.New("request error: network error"),
 		},
 		{
-			name: "Test unexpected status code",
+			name: "TestUnexpectedStatusCode",
 			fields: fields{
 				fetcherUtil: &mockFetcherUtil{
 					DoFunc: func(client *http.Client, req *http.Request) (*http.Response, error) {
@@ -219,36 +217,35 @@ func TestCheck(t *testing.T) {
 				ip:       testIP,
 				port:     testPort,
 			},
-			want:    nil,
-			wantErr: errors.New("unexpected status code 500: Internal Server Error"),
+			want:      nil,
+			wantError: errors.New("unexpected status code 500: Internal Server Error"),
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := &ProxyService{
-				fetcherUtil:       tt.fields.fetcherUtil,
-				urlParserUtil:     tt.fields.urlParserUtil,
-				httpTestingSites:  proxyService.httpTestingSites,
-				httpsTestingSites: proxyService.httpsTestingSites,
-				userAgents:        proxyService.userAgents,
-				semaphore:         make(chan struct{}, 10),
+			s := &service.ProxyService{
+				FetcherUtil:       tt.fields.fetcherUtil,
+				URLParserUtil:     tt.fields.urlParserUtil,
+				HTTPTestingSites:  testHTTPTestingSites,
+				HTTPSTestingSites: testHTTPSTestingSites,
+				UserAgents:        testUserAgents,
+				Semaphore:         make(chan struct{}, 10),
 			}
-
 			got, err := s.Check(tt.args.category, tt.args.ip, tt.args.port)
-			if err != nil && tt.wantErr != nil {
-				if err.Error() != tt.wantErr.Error() {
-					t.Errorf("ProxyService.Check() error = %v, want %v", err, tt.wantErr)
-				}
-			} else if (err == nil && tt.wantErr != nil) || (err != nil && tt.wantErr == nil) {
-				t.Errorf("ProxyService.Check() error = %v, want %v", err, tt.wantErr)
+
+			if (err != nil && tt.wantError != nil && err.Error() != tt.wantError.Error()) ||
+				(err == nil && tt.wantError != nil) ||
+				(err != nil && tt.wantError == nil) {
+				t.Errorf(expectedErrorButGotMessage, "ProxyService.Check()", tt.wantError, err)
 			}
 
-			if tt.want != nil && (!reflect.DeepEqual(got.Category, tt.want.Category) ||
-				!reflect.DeepEqual(got.Proxy, tt.want.Proxy) ||
-				!reflect.DeepEqual(got.IP, tt.want.IP) ||
-				!reflect.DeepEqual(got.Port, tt.want.Port)) {
-				t.Errorf("ProxyService.Check() = %v, want %v", got, tt.want)
+			if tt.want != nil &&
+				(!reflect.DeepEqual(got.Category, tt.want.Category) ||
+					!reflect.DeepEqual(got.Proxy, tt.want.Proxy) ||
+					!reflect.DeepEqual(got.IP, tt.want.IP) ||
+					!reflect.DeepEqual(got.Port, tt.want.Port)) {
+				t.Errorf(expectedButGotMessage, "ProxyService.Check()", tt.want, got)
 			}
 		})
 	}
@@ -268,29 +265,29 @@ func TestGetTestingSite(t *testing.T) {
 		{
 			name: "HTTP",
 			fields: fields{
-				httpTestingSites: proxyService.httpTestingSites,
+				httpTestingSites: testHTTPTestingSites,
 			},
-			want: proxyService.httpTestingSites,
+			want: testHTTPTestingSites,
 		},
 		{
 			name: "HTTPS",
 			fields: fields{
-				httpsTestingSites: proxyService.httpsTestingSites,
+				httpsTestingSites: testHTTPSTestingSites,
 			},
-			want: proxyService.httpsTestingSites,
+			want: testHTTPSTestingSites,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := &ProxyService{
-				httpTestingSites:  tt.fields.httpTestingSites,
-				httpsTestingSites: tt.fields.httpsTestingSites,
+			s := &service.ProxyService{
+				HTTPTestingSites:  tt.fields.httpTestingSites,
+				HTTPSTestingSites: tt.fields.httpsTestingSites,
 			}
 
 			site := s.GetTestingSite(tt.name)
 			if len(site) == 0 {
-				t.Errorf("expected a non-empty site for name %s", tt.name)
+				t.Errorf(expectedNonEmptyMessage, "site", tt.name+" sites")
 			}
 
 			found := false
@@ -300,9 +297,8 @@ func TestGetTestingSite(t *testing.T) {
 					break
 				}
 			}
-
 			if !found {
-				t.Errorf("expected site to be from %s sites, got %s, wants: %v", tt.name, site, tt.want)
+				t.Errorf(expectedButGotMessage, "site", tt.want, site)
 			}
 		})
 	}
@@ -313,27 +309,25 @@ func TestGetRandomUserAgent(t *testing.T) {
 		name string
 	}{
 		{
-			name: "Random user agent",
+			name: "RandomUserAgent",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := &ProxyService{
-				userAgents: proxyService.userAgents,
+			s := &service.ProxyService{
+				UserAgents: testUserAgents,
 			}
-
 			site := s.GetRandomUserAgent()
 			found := false
-			for _, ua := range s.userAgents {
+			for _, ua := range s.UserAgents {
 				if ua == site {
 					found = true
 					break
 				}
 			}
-
 			if !found {
-				t.Errorf("expected user agent not found, got %s, want: %v", site, s.userAgents)
+				t.Errorf(expectedButGotMessage, "user agent", s.UserAgents, site)
 			}
 		})
 	}

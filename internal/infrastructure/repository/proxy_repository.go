@@ -4,22 +4,21 @@ import (
 	"cmp"
 	"fresh-proxy-list/internal/entity"
 	"slices"
-	"sort"
 	"sync"
 )
 
 type ProxyRepository struct {
-	mu                 sync.RWMutex
-	allClassicView     []string
-	httpClassicView    []string
-	httpsClassicView   []string
-	socks4ClassicView  []string
-	socks5ClassicView  []string
-	allAdvancedView    []entity.AdvancedProxy
-	httpAdvancedView   []entity.Proxy
-	httpsAdvancedView  []entity.Proxy
-	socks4AdvancedView []entity.Proxy
-	socks5AdvancedView []entity.Proxy
+	Mutex              sync.RWMutex
+	AllClassicView     []string
+	HTTPClassicView    []string
+	HTTPSClassicView   []string
+	SOCKS4ClassicView  []string
+	SOCKS5ClassicView  []string
+	AllAdvancedView    []entity.AdvancedProxy
+	HTTPAdvancedView   []entity.Proxy
+	HTTPSAdvancedView  []entity.Proxy
+	SOCKS4AdvancedView []entity.Proxy
+	SOCKS5AdvancedView []entity.Proxy
 }
 
 type ProxyRepositoryInterface interface {
@@ -38,13 +37,13 @@ type ProxyRepositoryInterface interface {
 
 func NewProxyRepository() ProxyRepositoryInterface {
 	return &ProxyRepository{
-		mu: sync.RWMutex{},
+		Mutex: sync.RWMutex{},
 	}
 }
 
 func (r *ProxyRepository) Store(proxy *entity.Proxy) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
+	r.Mutex.Lock()
+	defer r.Mutex.Unlock()
 
 	updateProxyAll := func(proxy *entity.Proxy, classicList *[]string, advancedList *[]entity.AdvancedProxy) {
 		n, found := slices.BinarySearchFunc(*advancedList, entity.AdvancedProxy{Proxy: proxy.Proxy}, func(a, b entity.AdvancedProxy) int {
@@ -55,9 +54,8 @@ func (r *ProxyRepository) Store(proxy *entity.Proxy) {
 				(*advancedList)[n].TimeTaken = proxy.TimeTaken
 			}
 
-			if _, found := slices.BinarySearch((*advancedList)[n].Categories, proxy.Category); !found {
-				(*advancedList)[n].Categories = append((*advancedList)[n].Categories, proxy.Category)
-				sort.Strings((*advancedList)[n].Categories)
+			if m, found := slices.BinarySearch((*advancedList)[n].Categories, proxy.Category); !found {
+				(*advancedList)[n].Categories = slices.Insert((*advancedList)[n].Categories, m, proxy.Category)
 			}
 		} else {
 			*classicList = append(*classicList, proxy.Proxy)
@@ -77,73 +75,73 @@ func (r *ProxyRepository) Store(proxy *entity.Proxy) {
 	switch proxy.Category {
 	case "HTTP":
 		var (
-			httpClassicView  = &r.httpClassicView
-			httpAdvancedView = &r.httpAdvancedView
+			HTTPClassicView  = &r.HTTPClassicView
+			HTTPAdvancedView = &r.HTTPAdvancedView
 		)
-		*httpClassicView = append(*httpClassicView, proxy.Proxy)
-		*httpAdvancedView = append(*httpAdvancedView, *proxy)
+		*HTTPClassicView = append(*HTTPClassicView, proxy.Proxy)
+		*HTTPAdvancedView = append(*HTTPAdvancedView, *proxy)
 	case "HTTPS":
 		var (
-			httpsClassicView  = &r.httpsClassicView
-			httpsAdvancedView = &r.httpsAdvancedView
+			HTTPSClassicView  = &r.HTTPSClassicView
+			HTTPSAdvancedView = &r.HTTPSAdvancedView
 		)
-		*httpsClassicView = append(*httpsClassicView, proxy.Proxy)
-		*httpsAdvancedView = append(*httpsAdvancedView, *proxy)
+		*HTTPSClassicView = append(*HTTPSClassicView, proxy.Proxy)
+		*HTTPSAdvancedView = append(*HTTPSAdvancedView, *proxy)
 	case "SOCKS4":
 		var (
-			socks4ClassicView  = &r.socks4ClassicView
-			socks4AdvancedView = &r.socks4AdvancedView
+			SOCKS4ClassicView  = &r.SOCKS4ClassicView
+			SOCKS4AdvancedView = &r.SOCKS4AdvancedView
 		)
-		*socks4ClassicView = append(*socks4ClassicView, proxy.Proxy)
-		*socks4AdvancedView = append(*socks4AdvancedView, *proxy)
+		*SOCKS4ClassicView = append(*SOCKS4ClassicView, proxy.Proxy)
+		*SOCKS4AdvancedView = append(*SOCKS4AdvancedView, *proxy)
 	case "SOCKS5":
 		var (
-			socks5ClassicView  = &r.socks5ClassicView
-			socks5AdvancedView = &r.socks5AdvancedView
+			SOCKS5ClassicView  = &r.SOCKS5ClassicView
+			SOCKS5AdvancedView = &r.SOCKS5AdvancedView
 		)
-		*socks5ClassicView = append(*socks5ClassicView, proxy.Proxy)
-		*socks5AdvancedView = append(*socks5AdvancedView, *proxy)
+		*SOCKS5ClassicView = append(*SOCKS5ClassicView, proxy.Proxy)
+		*SOCKS5AdvancedView = append(*SOCKS5AdvancedView, *proxy)
 	}
 
-	updateProxyAll(proxy, &r.allClassicView, &r.allAdvancedView)
+	updateProxyAll(proxy, &r.AllClassicView, &r.AllAdvancedView)
 }
 
 func (r *ProxyRepository) GetAllClassicView() []string {
-	return r.allClassicView
+	return r.AllClassicView
 }
 
 func (r *ProxyRepository) GetHTTPClassicView() []string {
-	return r.httpClassicView
+	return r.HTTPClassicView
 }
 
 func (r *ProxyRepository) GetHTTPSClassicView() []string {
-	return r.httpsClassicView
+	return r.HTTPSClassicView
 }
 
 func (r *ProxyRepository) GetSOCKS4ClassicView() []string {
-	return r.socks4ClassicView
+	return r.SOCKS4ClassicView
 }
 
 func (r *ProxyRepository) GetSOCKS5ClassicView() []string {
-	return r.socks5ClassicView
+	return r.SOCKS5ClassicView
 }
 
 func (r *ProxyRepository) GetAllAdvancedView() []entity.AdvancedProxy {
-	return r.allAdvancedView
+	return r.AllAdvancedView
 }
 
 func (r *ProxyRepository) GetHTTPAdvancedView() []entity.Proxy {
-	return r.httpAdvancedView
+	return r.HTTPAdvancedView
 }
 
 func (r *ProxyRepository) GetHTTPSAdvancedView() []entity.Proxy {
-	return r.httpsAdvancedView
+	return r.HTTPSAdvancedView
 }
 
 func (r *ProxyRepository) GetSOCKS4AdvancedView() []entity.Proxy {
-	return r.socks4AdvancedView
+	return r.SOCKS4AdvancedView
 }
 
 func (r *ProxyRepository) GetSOCKS5AdvancedView() []entity.Proxy {
-	return r.socks5AdvancedView
+	return r.SOCKS5AdvancedView
 }

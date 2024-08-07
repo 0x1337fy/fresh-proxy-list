@@ -1,10 +1,10 @@
-package repository
+package repository_test
 
 import (
 	"bytes"
-	"encoding/csv"
 	"errors"
 	"fmt"
+	"fresh-proxy-list/internal/infrastructure/repository"
 	"fresh-proxy-list/pkg/utils"
 	"io"
 	"io/fs"
@@ -13,52 +13,14 @@ import (
 	"testing"
 )
 
-const (
-	column1          = "Column1"
-	column2          = "Column2"
-	row1Col1         = "Row1Col1"
-	row1Col2         = "Row1Col2"
-	row2Col1         = "Row2Col1"
-	row2Col2         = "Row2Col2"
-	openFileError    = "open file error"
-	writeHeaderError = "write header error"
-	writeRowError    = "write row error"
-	closeFileError   = "close file error"
+var (
+	column1     = "Column1"
+	column2     = "Column2"
+	row1Column1 = "Row1Column1"
+	row1Column2 = "Row1Column2"
+	row2Column1 = "Row2Column1"
+	row2Column2 = "Row2Column2"
 )
-
-type mockWriter struct {
-	err error
-}
-
-func (m *mockWriter) Write(p []byte) (int, error) {
-	if m.err != nil {
-		return 0, m.err
-	}
-	return len(p), nil
-}
-
-func (m *mockWriter) Close() error {
-	return nil
-}
-
-type mockCSVWriterUtil struct {
-	flushErr error
-	writeErr error
-}
-
-func (m *mockCSVWriterUtil) Init(w io.Writer) *csv.Writer {
-	return csv.NewWriter(w)
-}
-
-func (m *mockCSVWriterUtil) Flush(csvWriter *csv.Writer) {
-	if m.flushErr != nil {
-		return
-	}
-}
-
-func (m *mockCSVWriterUtil) Write(csvWriter *csv.Writer, record []string) error {
-	return m.writeErr
-}
 
 func TestNewFileRepository(t *testing.T) {
 	mockMkdirAll := func(path string, perm fs.FileMode) error {
@@ -74,27 +36,23 @@ func TestNewFileRepository(t *testing.T) {
 		return &bytes.Buffer{}, nil
 	}
 	mockCSVWriterUtil := &mockCSVWriterUtil{}
-	repo := NewFileRepository(mockMkdirAll, mockCreate, mockCSVWriterUtil)
+	fileRepository := repository.NewFileRepository(mockMkdirAll, mockCreate, mockCSVWriterUtil)
 
-	if repo == nil {
-		t.Errorf("Expected NewFileRepository to return a non-nil FileRepositoryInterface")
+	if fileRepository == nil {
+		t.Errorf(expectedReturnNonNil, "NewFileRepository", "FileRepositoryInterface")
 	}
 
-	fileRepo, ok := repo.(*FileRepository)
+	r, ok := fileRepository.(*repository.FileRepository)
 	if !ok {
-		t.Errorf("Expected repo to be of type *FileRepository")
+		t.Errorf(expectedTypeAssertionErrorMessage, "*FileRepository")
 	}
 
-	if fileRepo.mkdirAll == nil {
-		t.Fatal("expected mkdirAll to be set")
+	if r.MkdirAll == nil {
+		t.Errorf("expected mkdirAll to be set")
 	}
 
-	if fileRepo.create == nil {
-		t.Fatal("expected create to be set")
-	}
-
-	if fileRepo.modePerm != fs.ModePerm {
-		t.Errorf("Expected modePerm to be fs.ModePerm, got %v", fileRepo.modePerm)
+	if r.Create == nil {
+		t.Errorf("expected create to be set")
 	}
 }
 
@@ -112,14 +70,14 @@ func TestSaveFile(t *testing.T) {
 	}
 
 	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		want    string
-		wantErr error
+		name      string
+		fields    fields
+		args      args
+		want      string
+		wantError error
 	}{
 		{
-			name: "Create Directory Error",
+			name: "CreateDirectoryError",
 			fields: fields{
 				mkdirAll: func(path string, perm os.FileMode) error {
 					return errors.New("error creating directory")
@@ -129,15 +87,15 @@ func TestSaveFile(t *testing.T) {
 				},
 			},
 			args: args{
-				path:   testFilePath,
+				path:   testClassicFilePath + "." + testTXTExtension,
 				data:   strings.Join(testIPs, "\n"),
-				format: "txt",
+				format: testTXTExtension,
 			},
-			want:    "",
-			wantErr: fmt.Errorf(testErrCreateDirectory, testFilePath, "error creating directory"),
+			want:      "",
+			wantError: fmt.Errorf("error creating directory %v: %v", testClassicFilePath+"."+testTXTExtension, "error creating directory"),
 		},
 		{
-			name: "Create File Error",
+			name: "CreateFileError",
 			fields: fields{
 				mkdirAll: func(path string, perm os.FileMode) error {
 					return nil
@@ -147,15 +105,15 @@ func TestSaveFile(t *testing.T) {
 				},
 			},
 			args: args{
-				path:   testFilePath,
+				path:   testClassicFilePath + "." + testTXTExtension,
 				data:   testIPs,
-				format: "txt",
+				format: testTXTExtension,
 			},
-			want:    "",
-			wantErr: fmt.Errorf(testErrCreateFile, testFilePath, "error creating file"),
+			want:      "",
+			wantError: fmt.Errorf("error creating file %v: %v", testClassicFilePath+"."+testTXTExtension, "error creating file"),
 		},
 		{
-			name: "Unsupported Format",
+			name: "UnsupportedFormat",
 			fields: fields{
 				mkdirAll: func(path string, perm os.FileMode) error {
 					return nil
@@ -165,15 +123,15 @@ func TestSaveFile(t *testing.T) {
 				},
 			},
 			args: args{
-				path:   testFilePath,
+				path:   testClassicFilePath + "." + testTXTExtension,
 				data:   testIPs,
-				format: "unsupported",
+				format: "unsupported-format",
 			},
-			want:    "",
-			wantErr: fmt.Errorf(testUnsupportedFormat, "unsupported"),
+			want:      "",
+			wantError: fmt.Errorf("unsupported format: %v", "unsupported-format"),
 		},
 		{
-			name: "Write TXT Success",
+			name: "WriteTXTSuccess",
 			fields: fields{
 				mkdirAll: func(path string, perm os.FileMode) error {
 					return nil
@@ -183,35 +141,35 @@ func TestSaveFile(t *testing.T) {
 				},
 			},
 			args: args{
-				path:   testFilePath,
-				data:   []string{testIP1},
-				format: "txt",
+				path:   testClassicFilePath + "." + testTXTExtension,
+				data:   testIPs,
+				format: testTXTExtension,
 			},
-			want:    testIP1,
-			wantErr: nil,
+			want:      testIP1 + testIP2,
+			wantError: nil,
 		},
 		{
-			name: "Write TXT Error",
+			name: "WriteTXTError",
 			fields: fields{
 				mkdirAll: func(path string, perm os.FileMode) error {
 					return nil
 				},
 				create: func(name string) (io.Writer, error) {
 					return &mockWriter{
-						err: errors.New(testErrWriting),
+						errWrite: errors.New(testErrorWriting),
 					}, nil
 				},
 			},
 			args: args{
-				path:   testFilePath,
-				data:   []string{testIP1},
-				format: "txt",
+				path:   testClassicFilePath + "." + testTXTExtension,
+				data:   testIPs,
+				format: testTXTExtension,
 			},
-			want:    "",
-			wantErr: fmt.Errorf(testErrWritingTXT, testErrWriting),
+			want:      "",
+			wantError: fmt.Errorf("error writing TXT: %v", testErrorWriting),
 		},
 		{
-			name: "Encode JSON",
+			name: "EncodeJSON",
 			fields: fields{
 				mkdirAll: func(path string, perm os.FileMode) error {
 					return nil
@@ -221,35 +179,35 @@ func TestSaveFile(t *testing.T) {
 				},
 			},
 			args: args{
-				path:   testFilePath,
+				path:   testClassicFilePath + "." + testJSONExtension,
 				data:   string(testProxiesToString),
-				format: "json",
+				format: testJSONExtension,
 			},
-			want:    string(testProxiesToString),
-			wantErr: nil,
+			want:      string(testProxiesToString),
+			wantError: nil,
 		},
 		{
-			name: "Encode JSON Error",
+			name: "EncodeJSONError",
 			fields: fields{
 				mkdirAll: func(path string, perm os.FileMode) error {
 					return nil
 				},
 				create: func(name string) (io.Writer, error) {
 					return &mockWriter{
-						err: errors.New(testErrWriting),
+						errWrite: errors.New(testErrorWriting),
 					}, nil
 				},
 			},
 			args: args{
-				path:   testFilePath,
+				path:   testClassicFilePath + "." + testJSONExtension,
 				data:   testProxies,
-				format: "json",
+				format: testJSONExtension,
 			},
-			want:    "",
-			wantErr: fmt.Errorf(testErrEncode, "JSON", testErrWriting),
+			want:      "",
+			wantError: fmt.Errorf(testErrorEncode, "JSON", testErrorWriting),
 		},
 		{
-			name: "Encode CSV With String Data",
+			name: "EncodeCSVWithStringData",
 			fields: fields{
 				mkdirAll: func(path string, perm os.FileMode) error {
 					return nil
@@ -260,15 +218,15 @@ func TestSaveFile(t *testing.T) {
 				csvWriter: &mockCSVWriterUtil{},
 			},
 			args: args{
-				path:   testFilePath,
+				path:   testClassicFilePath + "." + testCSVExtension,
 				data:   testIPs,
-				format: "csv",
+				format: testCSVExtension,
 			},
-			want:    string(testIPsToString) + "\n",
-			wantErr: nil,
+			want:      string(testIPsToString) + "\n",
+			wantError: nil,
 		},
 		{
-			name: "Encode CSV With Proxy Data",
+			name: "EncodeCSVWithProxyData",
 			fields: fields{
 				mkdirAll: func(path string, perm os.FileMode) error {
 					return nil
@@ -279,15 +237,15 @@ func TestSaveFile(t *testing.T) {
 				csvWriter: &mockCSVWriterUtil{},
 			},
 			args: args{
-				path:   testFilePath,
+				path:   testAdvancedFilePath + "." + testCSVExtension,
 				data:   testProxies,
-				format: "csv",
+				format: testCSVExtension,
 			},
-			want:    string(testProxiesToString) + "\n",
-			wantErr: nil,
+			want:      string(testProxiesToString) + "\n",
+			wantError: nil,
 		},
 		{
-			name: "Encode CSV With Advanced Proxy Data",
+			name: "EncodeCSVWithAdvancedProxyData",
 			fields: fields{
 				mkdirAll: func(path string, perm os.FileMode) error {
 					return nil
@@ -298,15 +256,15 @@ func TestSaveFile(t *testing.T) {
 				csvWriter: &mockCSVWriterUtil{},
 			},
 			args: args{
-				path:   testFilePath,
+				path:   testAdvancedFilePath + "." + testCSVExtension,
 				data:   testAdvancedProxies,
-				format: "csv",
+				format: testCSVExtension,
 			},
-			want:    string(testAdvancedProxiesToString) + "\n",
-			wantErr: nil,
+			want:      string(testAdvancedProxiesToString) + "\n",
+			wantError: nil,
 		},
 		{
-			name: "Encode CSV With Error Data Type",
+			name: "EncodeCSVWithErrorDataType",
 			fields: fields{
 				mkdirAll: func(path string, perm os.FileMode) error {
 					return nil
@@ -317,12 +275,12 @@ func TestSaveFile(t *testing.T) {
 				csvWriter: &mockCSVWriterUtil{},
 			},
 			args: args{
-				path:   testFilePath,
+				path:   testClassicFilePath + "." + testCSVExtension,
 				data:   []error{},
-				format: "csv",
+				format: testCSVExtension,
 			},
-			want:    "",
-			wantErr: errors.New("invalid data type for CSV encoding"),
+			want:      "",
+			wantError: errors.New("invalid data type for CSV encoding"),
 		},
 		{
 			name: "EncodeXMLWithStringStruct",
@@ -335,12 +293,12 @@ func TestSaveFile(t *testing.T) {
 				},
 			},
 			args: args{
-				path:   testFilePath,
+				path:   testClassicFilePath + "." + testXMLExtension,
 				data:   testIPs,
-				format: "xml",
+				format: testXMLExtension,
 			},
-			want:    string(testIPsToString),
-			wantErr: nil,
+			want:      string(testIPsToString),
+			wantError: nil,
 		},
 		{
 			name: "EncodeXMLWithProxyStruct",
@@ -353,12 +311,12 @@ func TestSaveFile(t *testing.T) {
 				},
 			},
 			args: args{
-				path:   testFilePath,
+				path:   testClassicFilePath + "." + testXMLExtension,
 				data:   testProxies,
-				format: "xml",
+				format: testXMLExtension,
 			},
-			want:    string(testProxiesToString),
-			wantErr: nil,
+			want:      string(testProxiesToString),
+			wantError: nil,
 		},
 		{
 			name: "EncodeXMLWithAdvancedProxyStruct",
@@ -371,32 +329,32 @@ func TestSaveFile(t *testing.T) {
 				},
 			},
 			args: args{
-				path:   testFilePath,
+				path:   testClassicFilePath + "." + testXMLExtension,
 				data:   testAdvancedProxies,
-				format: "xml",
+				format: testXMLExtension,
 			},
-			want:    string(testAdvancedProxiesToString),
-			wantErr: nil,
+			want:      string(testAdvancedProxiesToString),
+			wantError: nil,
 		},
 		{
-			name: "Encode XML Error",
+			name: "EncodeXMLError",
 			fields: fields{
 				mkdirAll: func(path string, perm os.FileMode) error {
 					return nil
 				},
 				create: func(name string) (io.Writer, error) {
 					return &mockWriter{
-						err: errors.New(testErrWriting),
+						errWrite: errors.New(testErrorWriting),
 					}, nil
 				},
 			},
 			args: args{
-				path:   testFilePath,
+				path:   testClassicFilePath + "." + testXMLExtension,
 				data:   testProxies,
-				format: "xml",
+				format: testXMLExtension,
 			},
-			want:    "",
-			wantErr: fmt.Errorf(testErrEncode, "XML", testErrWriting),
+			want:      "",
+			wantError: fmt.Errorf(testErrorEncode, "XML", testErrorWriting),
 		},
 		{
 			name: "EncodeYAMLWithStringStruct",
@@ -409,12 +367,12 @@ func TestSaveFile(t *testing.T) {
 				},
 			},
 			args: args{
-				path:   testFilePath,
+				path:   testClassicFilePath + "." + testYAMLExtension,
 				data:   testIPs,
-				format: "yaml",
+				format: testYAMLExtension,
 			},
-			want:    string(testIPsToString),
-			wantErr: nil,
+			want:      string(testIPsToString),
+			wantError: nil,
 		},
 		{
 			name: "EncodeYAMLWithProxyStruct",
@@ -427,12 +385,12 @@ func TestSaveFile(t *testing.T) {
 				},
 			},
 			args: args{
-				path:   testFilePath,
+				path:   testClassicFilePath + "." + testYAMLExtension,
 				data:   testProxies,
-				format: "yaml",
+				format: testYAMLExtension,
 			},
-			want:    string(testProxiesToString),
-			wantErr: nil,
+			want:      string(testProxiesToString),
+			wantError: nil,
 		},
 		{
 			name: "EncodeYAMLWithAdvancedProxyStruct",
@@ -445,152 +403,127 @@ func TestSaveFile(t *testing.T) {
 				},
 			},
 			args: args{
-				path:   testFilePath,
+				path:   testClassicFilePath + "." + testYAMLExtension,
 				data:   testAdvancedProxies,
-				format: "yaml",
+				format: testYAMLExtension,
 			},
-			want:    string(testAdvancedProxiesToString),
-			wantErr: nil,
+			want:      string(testAdvancedProxiesToString),
+			wantError: nil,
 		},
 		{
-			name: "Encode YAML Error",
+			name: "EncodeYAMLError",
 			fields: fields{
 				mkdirAll: func(path string, perm os.FileMode) error {
 					return nil
 				},
 				create: func(name string) (io.Writer, error) {
 					return &mockWriter{
-						err: errors.New(testErrWriting),
+						errWrite: errors.New(testErrorWriting),
 					}, nil
 				},
 			},
 			args: args{
-				path:   testFilePath,
+				path:   testClassicFilePath + "." + testYAMLExtension,
 				data:   testProxies,
-				format: "yaml",
+				format: testYAMLExtension,
 			},
-			want:    "",
-			wantErr: fmt.Errorf(testErrEncode, "YAML", "yaml: write error: error writing"),
+			want:      "",
+			wantError: fmt.Errorf(testErrorEncode, "YAML", "yaml: write error: error writing"),
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			repo := &FileRepository{
-				mkdirAll:  tt.fields.mkdirAll,
-				create:    tt.fields.create,
-				csvWriter: tt.fields.csvWriter,
+			r := &repository.FileRepository{
+				MkdirAll:  tt.fields.mkdirAll,
+				Create:    tt.fields.create,
+				CSVWriter: tt.fields.csvWriter,
 			}
-
-			err := repo.SaveFile(tt.args.path, tt.args.data, tt.args.format)
-			if err != nil && tt.wantErr != nil {
-				if err.Error() != tt.wantErr.Error() {
-					t.Errorf("SaveFile() error = %v, want %v", err, tt.wantErr)
-				}
-			} else if (err == nil && tt.wantErr != nil) || (err != nil && tt.wantErr == nil) {
-				t.Errorf("SaveFile() error = %v, want %v", err, tt.wantErr)
-			}
-
-			if tt.wantErr == nil {
-				if got, ok := tt.args.data.(string); ok {
-					if got != tt.want {
-						t.Errorf("SaveFile() = %v, want %v", got, tt.want)
-					}
-				}
+			err := r.SaveFile(tt.args.path, tt.args.data, tt.args.format)
+			if (err != nil && tt.wantError != nil && err.Error() != tt.wantError.Error()) ||
+				(err == nil && tt.wantError != nil) ||
+				(err != nil && tt.wantError == nil) {
+				t.Errorf(expectedErrorButGotMessage, "SaveFile()", tt.wantError, err)
 			}
 		})
 	}
 }
 
 func TestWriteCSV(t *testing.T) {
+	type fields struct {
+		csvWriter utils.CSVWriterUtilInterface
+	}
+
+	type args struct {
+		header []string
+		rows   [][]string
+	}
+
 	tests := []struct {
-		name   string
-		fields struct {
-			csvWriter utils.CSVWriterUtilInterface
-		}
-		args struct {
-			header []string
-			rows   [][]string
-		}
-		wantErr error
+		name      string
+		fields    fields
+		args      args
+		wantError error
 	}{
 		{
 			name: "Success",
-			fields: struct {
-				csvWriter utils.CSVWriterUtilInterface
-			}{
+			fields: fields{
 				csvWriter: &mockCSVWriterUtil{},
 			},
-			args: struct {
-				header []string
-				rows   [][]string
-			}{
+			args: args{
 				header: []string{column1, column2},
 				rows: [][]string{
-					{row1Col1, row1Col2},
-					{row2Col1, row2Col2},
+					{row1Column1, row1Column2},
+					{row2Column1, row2Column2},
 				},
 			},
-			wantErr: nil,
+			wantError: nil,
 		},
 		{
 			name: "ErrorWritingHeader",
-			fields: struct {
-				csvWriter utils.CSVWriterUtilInterface
-			}{
+			fields: fields{
 				csvWriter: &mockCSVWriterUtil{
-					writeErr: errors.New(writeHeaderError),
+					errWrite: errors.New("write header error"),
 				},
 			},
-			args: struct {
-				header []string
-				rows   [][]string
-			}{
+			args: args{
 				header: []string{column1, column2},
 				rows: [][]string{
-					{row1Col1, row1Col2},
-					{row2Col1, row2Col2},
+					{row1Column1, row1Column2},
+					{row2Column1, row2Column2},
 				},
 			},
-			wantErr: fmt.Errorf("failed to write header: %w", errors.New(writeHeaderError)),
+			wantError: fmt.Errorf("failed to write header: %w", errors.New("write header error")),
 		},
 		{
 			name: "ErrorWritingRow",
-			fields: struct {
-				csvWriter utils.CSVWriterUtilInterface
-			}{
+			fields: fields{
 				csvWriter: &mockCSVWriterUtil{
-					writeErr: errors.New(writeRowError),
+					errWrite: errors.New("write row error"),
 				},
 			},
-			args: struct {
-				header []string
-				rows   [][]string
-			}{
+			args: args{
 				header: nil,
 				rows: [][]string{
-					{row1Col1, row1Col2},
-					{row2Col1, row2Col2},
+					{row1Column1, row1Column2},
+					{row2Column1, row2Column2},
 				},
 			},
-			wantErr: fmt.Errorf("failed to write row: %w", errors.New(writeRowError)),
+			wantError: fmt.Errorf("failed to write row: %w", errors.New("write row error")),
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var buf bytes.Buffer
-			fileRepo := &FileRepository{
-				csvWriter: tt.fields.csvWriter,
+			r := &repository.FileRepository{
+				CSVWriter: tt.fields.csvWriter,
 			}
-
-			err := fileRepo.writeCSV(&buf, tt.args.header, tt.args.rows)
-			if err != nil && tt.wantErr != nil {
-				if err.Error() != tt.wantErr.Error() {
-					t.Errorf("WriteCSV() error = %v, want %v", err, tt.wantErr)
-				}
-			} else if (err == nil && tt.wantErr != nil) || (err != nil && tt.wantErr == nil) {
-				t.Errorf("WriteCSV() error = %v, want %v", err, tt.wantErr)
+			err := r.WriteCSV(&buf, tt.args.header, tt.args.rows)
+			if (err != nil && tt.wantError != nil && err.Error() != tt.wantError.Error()) ||
+				(err == nil && tt.wantError != nil) ||
+				(err != nil && tt.wantError == nil) {
+				t.Errorf(expectedErrorButGotMessage, "WriteCSV()", tt.wantError, err)
 			}
 		})
 	}

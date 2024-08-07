@@ -7,8 +7,8 @@ import (
 	"fresh-proxy-list/internal/entity"
 )
 
-type sourceRepository struct {
-	proxyResources string
+type SourceRepository struct {
+	ProxyResources string
 }
 
 type SourceRepositoryInterface interface {
@@ -16,13 +16,13 @@ type SourceRepositoryInterface interface {
 }
 
 func NewSourceRepository(proxyResources string) SourceRepositoryInterface {
-	return &sourceRepository{
-		proxyResources: proxyResources,
+	return &SourceRepository{
+		ProxyResources: proxyResources,
 	}
 }
 
-func (r *sourceRepository) LoadSources() ([]entity.Source, error) {
-	sourcesJSON := r.proxyResources
+func (r *SourceRepository) LoadSources() ([]entity.Source, error) {
+	sourcesJSON := r.ProxyResources
 	if sourcesJSON == "" {
 		return nil, errors.New("PROXY_RESOURCES not found on environment")
 	}
