@@ -15,12 +15,12 @@ import (
 )
 
 type ProxyService struct {
-	fetcherUtil       utils.FetcherUtilInterface
-	urlParserUtil     utils.URLParserUtilInterface
-	httpTestingSites  []string
-	httpsTestingSites []string
-	userAgents        []string
-	semaphore         chan struct{}
+	FetcherUtil       utils.FetcherUtilInterface
+	URLParserUtil     utils.URLParserUtilInterface
+	HTTPTestingSites  []string
+	HTTPSTestingSites []string
+	UserAgents        []string
+	Semaphore         chan struct{}
 }
 
 type ProxyServiceInterface interface {
@@ -37,18 +37,18 @@ func NewProxyService(
 	userAgents []string,
 ) ProxyServiceInterface {
 	return &ProxyService{
-		fetcherUtil:       fetcherUtil,
-		urlParserUtil:     urlParserUtil,
-		httpTestingSites:  httpTestingSites,
-		httpsTestingSites: httpsTestingSites,
-		userAgents:        userAgents,
-		semaphore:         make(chan struct{}, 500),
+		FetcherUtil:       fetcherUtil,
+		URLParserUtil:     urlParserUtil,
+		HTTPTestingSites:  httpTestingSites,
+		HTTPSTestingSites: httpsTestingSites,
+		UserAgents:        userAgents,
+		Semaphore:         make(chan struct{}, 500),
 	}
 }
 
 func (s *ProxyService) Check(category string, ip string, port string) (*entity.Proxy, error) {
-	s.semaphore <- struct{}{}
-	defer func() { <-s.semaphore }()
+	s.Semaphore <- struct{}{}
+	defer func() { <-s.Semaphore }()
 
 	var (
 		transport   *http.Transport
@@ -59,7 +59,7 @@ func (s *ProxyService) Check(category string, ip string, port string) (*entity.P
 	)
 
 	if category == "HTTP" || category == "HTTPS" {
-		proxyURL, err := s.urlParserUtil.Parse(proxyURI)
+		proxyURL, err := s.URLParserUtil.Parse(proxyURI)
 		if err != nil {
 			return nil, fmt.Errorf("error parsing proxy URL: %v", err)
 		}
@@ -90,14 +90,14 @@ func (s *ProxyService) Check(category string, ip string, port string) (*entity.P
 		return nil, fmt.Errorf("proxy category %s not supported", category)
 	}
 
-	req, err := s.fetcherUtil.NewRequest("GET", testingSite, nil)
+	req, err := s.FetcherUtil.NewRequest("GET", testingSite, nil)
 	if err != nil {
 		return nil, fmt.Errorf("error creating request: %s", err)
 	}
 	req.Header.Set("User-Agent", s.GetRandomUserAgent())
 
 	startTime := time.Now()
-	resp, err := s.fetcherUtil.Do(&http.Client{
+	resp, err := s.FetcherUtil.Do(&http.Client{
 		Transport: transport,
 		Timeout:   timeout,
 	}, req)
@@ -131,11 +131,11 @@ func (s *ProxyService) Check(category string, ip string, port string) (*entity.P
 
 func (s *ProxyService) GetTestingSite(category string) string {
 	if category == "HTTPS" {
-		return s.httpsTestingSites[rand.Intn(len(s.httpsTestingSites))]
+		return s.HTTPSTestingSites[rand.Intn(len(s.HTTPSTestingSites))]
 	}
-	return s.httpTestingSites[rand.Intn(len(s.httpTestingSites))]
+	return s.HTTPTestingSites[rand.Intn(len(s.HTTPTestingSites))]
 }
 
 func (s *ProxyService) GetRandomUserAgent() string {
-	return s.userAgents[rand.Intn(len(s.userAgents))]
+	return s.UserAgents[rand.Intn(len(s.UserAgents))]
 }

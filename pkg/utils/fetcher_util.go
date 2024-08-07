@@ -7,8 +7,8 @@ import (
 )
 
 type FetcherUtil struct {
-	client     *http.Client
-	newRequest func(method string, url string, body io.Reader) (*http.Request, error)
+	Client         *http.Client
+	NewRequestFunc func(method string, url string, body io.Reader) (*http.Request, error)
 }
 
 type FetcherUtilInterface interface {
@@ -19,18 +19,26 @@ type FetcherUtilInterface interface {
 
 func NewFetcher(client *http.Client, newRequestFunc func(method, url string, body io.Reader) (*http.Request, error)) FetcherUtilInterface {
 	return &FetcherUtil{
-		client:     client,
-		newRequest: newRequestFunc,
+		Client:         client,
+		NewRequestFunc: newRequestFunc,
 	}
 }
 
+func (u *FetcherUtil) Do(client *http.Client, req *http.Request) (*http.Response, error) {
+	return client.Do(req)
+}
+
+func (u *FetcherUtil) NewRequest(method string, url string, body io.Reader) (*http.Request, error) {
+	return http.NewRequest(method, url, body)
+}
+
 func (u *FetcherUtil) FetchData(url string) ([]byte, error) {
-	req, err := u.newRequest("GET", url, nil)
+	req, err := u.NewRequestFunc("GET", url, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	resp, err := u.Do(u.client, req)
+	resp, err := u.Do(u.Client, req)
 	if err != nil {
 		return nil, err
 	}
@@ -47,12 +55,4 @@ func (u *FetcherUtil) FetchData(url string) ([]byte, error) {
 	}
 
 	return body, nil
-}
-
-func (u *FetcherUtil) Do(client *http.Client, req *http.Request) (*http.Response, error) {
-	return client.Do(req)
-}
-
-func (u *FetcherUtil) NewRequest(method, url string, body io.Reader) (*http.Request, error) {
-	return http.NewRequest(method, url, body)
 }
