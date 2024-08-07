@@ -2,8 +2,8 @@ package main
 
 import (
 	"fresh-proxy-list/internal/entity"
-	"fresh-proxy-list/internal/infra/config"
-	"fresh-proxy-list/internal/infra/repository"
+	"fresh-proxy-list/internal/infrastructure/config"
+	"fresh-proxy-list/internal/infrastructure/repository"
 	"fresh-proxy-list/internal/service"
 	"fresh-proxy-list/internal/usecase"
 	"fresh-proxy-list/pkg/utils"
@@ -11,9 +11,7 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"regexp"
 	"slices"
-	"strings"
 	"sync"
 	"time"
 
@@ -53,7 +51,7 @@ func runApplication() error {
 		return file, nil
 	}
 
-	fetcherUtil := utils.NewFetcher(http.DefaultClient, createHTTPRequest)
+	fetcherUtil := utils.NewFetcher(http.DefaultClient, http.NewRequest)
 	urlParserUtil := utils.NewURLParser()
 	csvWriterUtil := utils.NewCSVWriter()
 	proxyService := service.NewProxyService(fetcherUtil, urlParserUtil, httpTestingSites, httpsTestingSites, userAgents)
@@ -77,14 +75,10 @@ func loadEnv() error {
 	return godotenv.Load()
 }
 
-func createHTTPRequest(method, url string, body io.Reader) (*http.Request, error) {
-	return http.NewRequest(method, url, body)
-}
-
 func run(runners Runners) error {
 	startTime := time.Now()
 
-	sourceUsecase := usecase.NewSourceUsecase(runners.sourceRepository)
+	sourceUsecase := usecase.NewSourceUsecase(runners.sourceRepository, runners.fetcherUtil)
 	sources, err := sourceUsecase.LoadSources()
 	if err != nil {
 		return err
@@ -101,22 +95,9 @@ func run(runners Runners) error {
 			go func(source entity.Source) {
 				defer wg.Done()
 
-				body, err := runners.fetcherUtil.FetchData(source.URL)
+				innerWG := sync.WaitGroup{}
+				proxies, err := sourceUsecase.ProcessSource(&source)
 				if err != nil {
-					return
-				}
-
-				var (
-					innerWG sync.WaitGroup
-					proxies []string
-				)
-				switch source.Method {
-				case "LIST":
-					proxies = strings.Split(strings.TrimSpace(string(body)), "\n")
-				case "SCRAP":
-					re := regexp.MustCompile(`[0-9]+(?:\.[0-9]+){3}:[0-9]+`)
-					proxies = re.FindAllString(string(body), -1)
-				default:
 					return
 				}
 

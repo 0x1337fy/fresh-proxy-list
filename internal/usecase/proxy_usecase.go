@@ -3,7 +3,7 @@ package usecase
 import (
 	"fmt"
 	"fresh-proxy-list/internal/entity"
-	"fresh-proxy-list/internal/infra/repository"
+	"fresh-proxy-list/internal/infrastructure/repository"
 	"fresh-proxy-list/internal/service"
 	"net"
 	"regexp"
@@ -14,11 +14,11 @@ import (
 )
 
 type ProxyUsecase struct {
-	proxyRepository repository.ProxyRepositoryInterface
-	proxyService    service.ProxyServiceInterface
-	proxyMap        sync.Map
-	specialIPs      []string
-	privateIPs      []net.IPNet
+	ProxyRepository repository.ProxyRepositoryInterface
+	ProxyService    service.ProxyServiceInterface
+	ProxyMap        sync.Map
+	SpecialIPs      []string
+	PrivateIPs      []net.IPNet
 }
 
 type ProxyUsecaseInterface interface {
@@ -34,11 +34,11 @@ func NewProxyUsecase(
 	privateIPs []net.IPNet,
 ) ProxyUsecaseInterface {
 	return &ProxyUsecase{
-		proxyRepository: proxyRepository,
-		proxyService:    proxyService,
-		specialIPs:      specialIPs,
-		privateIPs:      privateIPs,
-		proxyMap:        sync.Map{},
+		ProxyRepository: proxyRepository,
+		ProxyService:    proxyService,
+		SpecialIPs:      specialIPs,
+		PrivateIPs:      privateIPs,
+		ProxyMap:        sync.Map{},
 	}
 }
 
@@ -68,7 +68,7 @@ func (uc *ProxyUsecase) ProcessProxy(category string, proxy string, isChecked bo
 		return nil, fmt.Errorf("proxy port format incorrect")
 	}
 
-	_, loaded := uc.proxyMap.LoadOrStore(category+"_"+proxy, true)
+	_, loaded := uc.ProxyMap.LoadOrStore(category+"_"+proxy, true)
 	if loaded {
 		return nil, fmt.Errorf("proxy has been processed")
 	}
@@ -78,7 +78,7 @@ func (uc *ProxyUsecase) ProcessProxy(category string, proxy string, isChecked bo
 		proxyIP, proxyPort = proxyParts[0], proxyParts[1]
 	)
 	if isChecked {
-		data, err = uc.proxyService.Check(category, proxyIP, proxyPort)
+		data, err = uc.ProxyService.Check(category, proxyIP, proxyPort)
 		if err != nil {
 			return nil, err
 		}
@@ -92,13 +92,13 @@ func (uc *ProxyUsecase) ProcessProxy(category string, proxy string, isChecked bo
 			CheckedAt: "",
 		}
 	}
-	uc.proxyRepository.Store(data)
+	uc.ProxyRepository.Store(data)
 
 	return data, nil
 }
 
 func (uc *ProxyUsecase) IsSpecialIP(ip string) bool {
-	if _, found := slices.BinarySearch(uc.specialIPs, ip); found {
+	if _, found := slices.BinarySearch(uc.SpecialIPs, ip); found {
 		return true
 	}
 
@@ -111,7 +111,7 @@ func (uc *ProxyUsecase) IsSpecialIP(ip string) bool {
 		return true
 	}
 
-	for _, r := range uc.privateIPs {
+	for _, r := range uc.PrivateIPs {
 		if r.Contains(ipAddress) {
 			return true
 		}
@@ -121,5 +121,5 @@ func (uc *ProxyUsecase) IsSpecialIP(ip string) bool {
 }
 
 func (uc *ProxyUsecase) GetAllAdvancedView() []entity.AdvancedProxy {
-	return uc.proxyRepository.GetAllAdvancedView()
+	return uc.ProxyRepository.GetAllAdvancedView()
 }
